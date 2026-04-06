@@ -6305,10 +6305,11 @@
             },
 
             bindEvents() {
+                const on = (id, event, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(event, fn); };
                 // Sidebar
-                document.getElementById('menuToggle').addEventListener('click', () => this.toggleSidebar());
-                document.getElementById('sidebarOverlay').addEventListener('click', () => this.closeSidebar());
-                document.getElementById('newChatBtn').addEventListener('click', () => this.newChat());
+                on('menuToggle', 'click', () => this.toggleSidebar());
+                on('sidebarOverlay', 'click', () => this.closeSidebar());
+                on('newChatBtn', 'click', () => this.newChat());
                 
                 // Sidebar tabs
                 document.querySelectorAll('.sidebar-tab').forEach(tab => {
@@ -6316,47 +6317,50 @@
                 });
                 
                 // Search
-                document.getElementById('searchInput').addEventListener('input', (e) => this.searchConversations(e.target.value));
+                on('searchInput', 'input', (e) => this.searchConversations(e.target.value));
                 
                 // Message input
                 const input = document.getElementById('messageInput');
-                input.addEventListener('input', () => {
-                    this.autoResize();
-                    document.getElementById('sendBtn').disabled = !input.value.trim();
-                    this.handleSlashCommand(input.value);
-                });
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        this.sendMessage();
-                    }
-                });
+                if (input) {
+                    input.addEventListener('input', () => {
+                        this.autoResize();
+                        const sendBtn = document.getElementById('sendBtn');
+                        if (sendBtn) sendBtn.disabled = !input.value.trim();
+                        this.handleSlashCommand(input.value);
+                    });
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            this.sendMessage();
+                        }
+                    });
+                }
                 
-                document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
+                on('sendBtn', 'click', () => this.sendMessage());
                 
                 // Toolbar buttons
-                document.getElementById('thinkModeBtn').addEventListener('click', () => this.toggleMode('think'));
-                document.getElementById('searchModeBtn').addEventListener('click', () => this.toggleMode('search'));
-                document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('imageBtn').addEventListener('click', () => this.toast('Vision mode: upload an image', 'info'));
-                document.getElementById('voiceBtn').addEventListener('click', () => this.toggleVoice());
-                document.getElementById('historyBtn').addEventListener('click', () => this.togglePanel('historyPanel'));
-                document.getElementById('bookmarkBtn').addEventListener('click', () => this.togglePanel('bookmarksPanel'));
-                document.getElementById('teamBtn').addEventListener('click', () => this.togglePanel('teamPanel'));
-                document.getElementById('analyticsBtn').addEventListener('click', () => this.togglePanel('analyticsPanel'));
+                on('thinkModeBtn', 'click', () => this.toggleMode('think'));
+                on('searchModeBtn', 'click', () => this.toggleMode('search'));
+                on('uploadBtn', 'click', () => document.getElementById('fileInput').click());
+                on('imageBtn', 'click', () => this.toast('Vision mode: upload an image', 'info'));
+                on('voiceBtn', 'click', () => this.toggleVoice());
+                on('historyBtn', 'click', () => this.togglePanel('historyPanel'));
+                on('bookmarkBtn', 'click', () => this.togglePanel('bookmarksPanel'));
+                on('teamBtn', 'click', () => this.togglePanel('teamPanel'));
+                on('analyticsBtn', 'click', () => this.togglePanel('analyticsPanel'));
                 
                 // Header buttons
-                document.getElementById('settingsBtn').addEventListener('click', () => this.openModal('settingsModal'));
-                document.getElementById('templatesBtn').addEventListener('click', () => this.openModal('templatesModal'));
-                document.getElementById('personaBtn').addEventListener('click', () => this.openModal('personasModal'));
-                document.getElementById('canvasBtn').addEventListener('click', () => this.togglePanel('canvasPanel'));
-                document.getElementById('themeBtn').addEventListener('click', () => this.toggleTheme());
-                document.getElementById('aiModeBtn').addEventListener('click', () => this.openModal('aiModeModal'));
-                document.getElementById('closeAiMode').addEventListener('click', () => this.closeModal('aiModeModal'));
-                document.getElementById('researchBtn').addEventListener('click', () => this.togglePanel('researchPanel'));
+                on('settingsBtn', 'click', () => this.openModal('settingsModal'));
+                on('templatesBtn', 'click', () => this.openModal('templatesModal'));
+                on('personaBtn', 'click', () => this.openModal('personasModal'));
+                on('canvasBtn', 'click', () => this.togglePanel('canvasPanel'));
+                on('themeBtn', 'click', () => this.toggleTheme());
+                on('aiModeBtn', 'click', () => this.openModal('aiModeModal'));
+                on('closeAiMode', 'click', () => this.closeModal('aiModeModal'));
+                on('researchBtn', 'click', () => this.togglePanel('researchPanel'));
                 
                 // FAB button
-                document.getElementById('fabButton').addEventListener('click', () => this.toggleFab());
+                on('fabButton', 'click', () => this.toggleFab());
                 document.querySelectorAll('.fab-menu-item').forEach(item => {
                     item.addEventListener('click', () => this.handleFabAction(item.dataset.fab));
                 });
@@ -6365,7 +6369,7 @@
                 document.querySelectorAll('.command-item').forEach(item => {
                     item.addEventListener('click', () => this.executeCommand(item.dataset.command));
                 });
-                document.getElementById('commandInput').addEventListener('keydown', (e) => {
+                on('commandInput', 'keydown', (e) => {
                     if (e.key === 'Enter') {
                         const active = document.querySelector('.command-item.selected');
                         if (active) this.executeCommand(active.dataset.command);
@@ -6378,24 +6382,24 @@
                 });
                 
                 // Settings
-                document.getElementById('closeSettings').addEventListener('click', () => this.closeModal('settingsModal'));
-                document.getElementById('temperatureSlider').addEventListener('input', (e) => {
+                on('closeSettings', 'click', () => this.closeModal('settingsModal'));
+                on('temperatureSlider', 'input', (e) => {
                     document.getElementById('tempValue').textContent = e.target.value;
                     this.state.settings.temperature = parseFloat(e.target.value);
                 });
-                document.getElementById('maxTokensSlider').addEventListener('input', (e) => {
+                on('maxTokensSlider', 'input', (e) => {
                     document.getElementById('tokensValue').textContent = e.target.value;
                     this.state.settings.maxTokens = parseInt(e.target.value);
                 });
-                document.getElementById('thinkingToggle').addEventListener('click', (e) => {
+                on('thinkingToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     this.state.settings.thinking = e.target.classList.contains('active');
                 });
-                document.getElementById('streamingToggle').addEventListener('click', (e) => {
+                on('streamingToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     this.state.settings.streaming = e.target.classList.contains('active');
                 });
-                document.getElementById('syntaxToggle').addEventListener('click', (e) => {
+                on('syntaxToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     this.state.settings.syntax = e.target.classList.contains('active');
                 });
@@ -6441,13 +6445,13 @@
                 });
                 
                 // Security features
-                document.getElementById('regenerateKey').addEventListener('click', () => {
+                on('regenerateKey', 'click', () => {
                     const key = 'aether-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
                     encKey.value = key;
                     this.toast('Encryption key regenerated', 'success');
                 });
                 
-                document.getElementById('addApiKey').addEventListener('click', () => {
+                on('addApiKey', 'click', () => {
                     const name = document.getElementById('keyName').value;
                     const key = document.getElementById('newApiKey').value;
                     if (name && key) {
@@ -6459,11 +6463,11 @@
                     }
                 });
                 
-                document.getElementById('revokeAllSessions').addEventListener('click', () => {
+                on('revokeAllSessions', 'click', () => {
                     this.toast('All other sessions revoked', 'success');
                 });
                 
-                document.getElementById('redactPii').addEventListener('click', () => {
+                on('redactPii', 'click', () => {
                     const text = document.getElementById('piiText').value;
                     const redacted = text.replace(/\b\d{3}-\d{2}-\d{4}\b/g, 'XXX-XX-XXXX')
                         .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
@@ -6472,7 +6476,7 @@
                     this.toast('PII redacted', 'success');
                 });
                 
-                document.getElementById('generateShareLink').addEventListener('click', () => {
+                on('generateShareLink', 'click', () => {
                     const shareId = Math.random().toString(36).substring(2, 10);
                     const link = window.location.origin + '/share/' + shareId + '#enc';
                     document.getElementById('shareLinkOutput').value = link;
@@ -6480,7 +6484,7 @@
                     this.toast('Encrypted share link created', 'success');
                 });
                 
-                document.getElementById('copyShareLink').addEventListener('click', () => {
+                on('copyShareLink', 'click', () => {
                     const link = document.getElementById('shareLinkOutput').value;
                     navigator.clipboard.writeText(link);
                     this.toast('Link copied to clipboard', 'success');
@@ -6505,53 +6509,53 @@
                 });
                 
                 // Compare mode toggle
-                document.getElementById('compareModeToggle').addEventListener('click', (e) => {
+                on('compareModeToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     this.state.settings.compareMode = e.target.classList.contains('active');
                     this.toast(this.state.settings.compareMode ? 'Compare mode enabled' : 'Compare mode disabled', 'info');
                 });
                 
                 // Accessibility toggles
-                document.getElementById('highContrastToggle').addEventListener('click', (e) => {
+                on('highContrastToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     document.body.classList.toggle('high-contrast', e.target.classList.contains('active'));
                 });
-                document.getElementById('largeTextToggle').addEventListener('click', (e) => {
+                on('largeTextToggle', 'click', (e) => {
                     e.target.classList.toggle('active');
                     document.body.classList.toggle('large-text', e.target.classList.contains('active'));
                 });
                 
-                document.getElementById('runCompareBtn').addEventListener('click', () => this.runCompareMode());
+                on('runCompareBtn', 'click', () => this.runCompareMode());
                 
                 // Fork button
-                document.getElementById('forkBtn').addEventListener('click', () => this.forkConversation());
+                on('forkBtn', 'click', () => this.forkConversation());
                 
                 // Prompt history button
-                document.getElementById('promptHistoryBtn').addEventListener('click', () => this.showPromptHistory());
+                on('promptHistoryBtn', 'click', () => this.showPromptHistory());
                 
-                document.getElementById('themeSelect').addEventListener('change', (e) => {
+                on('themeSelect', 'change', (e) => {
                     this.state.settings.theme = e.target.value;
                     this.applyTheme();
                 });
-                document.getElementById('fontSizeSelect').addEventListener('change', (e) => {
+                on('fontSizeSelect', 'change', (e) => {
                     this.state.settings.fontSize = parseInt(e.target.value);
                     document.documentElement.style.setProperty('--font-size', e.target.value + 'px');
                 });
-                document.getElementById('saveApiKey').addEventListener('click', () => this.saveApiKey());
-                document.getElementById('exportBtn').addEventListener('click', () => this.exportData());
-                document.getElementById('clearDataBtn').addEventListener('click', () => this.clearData());
+                on('saveApiKey', 'click', () => this.saveApiKey());
+                on('exportBtn', 'click', () => this.exportData());
+                on('clearDataBtn', 'click', () => this.clearData());
                 
                 // Templates
-                document.getElementById('closeTemplates').addEventListener('click', () => this.closeModal('templatesModal'));
+                on('closeTemplates', 'click', () => this.closeModal('templatesModal'));
                  
                  // Personas
-                document.getElementById('closePersonas').addEventListener('click', () => this.closeModal('personasModal'));
+                on('closePersonas', 'click', () => this.closeModal('personasModal'));
                 document.querySelectorAll('.persona-card').forEach(card => {
                     card.addEventListener('click', () => this.selectPersona(card.dataset.persona));
                 });
                 
                 // Shortcuts
-                document.getElementById('closeShortcuts').addEventListener('click', () => this.closeModal('shortcutsModal'));
+                on('closeShortcuts', 'click', () => this.closeModal('shortcutsModal'));
                 
                 // Quick actions
                 document.querySelectorAll('.quick-action-card').forEach(card => {
@@ -6559,20 +6563,20 @@
                 });
                 
                 // Panels
-                document.getElementById('closeMemory').addEventListener('click', () => this.closePanel('memoryPanel'));
-                document.getElementById('closeAgents').addEventListener('click', () => this.closePanel('agentsPanel'));
-                document.getElementById('closeCanvas').addEventListener('click', () => this.closePanel('canvasPanel'));
-                document.getElementById('closeHistory').addEventListener('click', () => this.closePanel('historyPanel'));
-                document.getElementById('closeBookmarks').addEventListener('click', () => this.closePanel('bookmarksPanel'));
-                document.getElementById('closeProductivity').addEventListener('click', () => this.closePanel('productivityPanel'));
-                document.getElementById('closeEducation').addEventListener('click', () => this.closePanel('educationPanel'));
-                document.getElementById('closeSkills').addEventListener('click', () => this.closePanel('skillsPanel'));
-                document.getElementById('closeTeam').addEventListener('click', () => this.closePanel('teamPanel'));
-                document.getElementById('closeAnalytics').addEventListener('click', () => this.closePanel('analyticsPanel'));
+                on('closeMemory', 'click', () => this.closePanel('memoryPanel'));
+                on('closeAgents', 'click', () => this.closePanel('agentsPanel'));
+                on('closeCanvas', 'click', () => this.closePanel('canvasPanel'));
+                on('closeHistory', 'click', () => this.closePanel('historyPanel'));
+                on('closeBookmarks', 'click', () => this.closePanel('bookmarksPanel'));
+                on('closeProductivity', 'click', () => this.closePanel('productivityPanel'));
+                on('closeEducation', 'click', () => this.closePanel('educationPanel'));
+                on('closeSkills', 'click', () => this.closePanel('skillsPanel'));
+                on('closeTeam', 'click', () => this.closePanel('teamPanel'));
+                on('closeAnalytics', 'click', () => this.closePanel('analyticsPanel'));
                 
                 // Research panel
-                document.getElementById('closeResearch').addEventListener('click', () => this.closePanel('researchPanel'));
-                document.getElementById('closeToolModal').addEventListener('click', () => this.closeModal('toolModal'));
+                on('closeResearch', 'click', () => this.closePanel('researchPanel'));
+                on('closeToolModal', 'click', () => this.closeModal('toolModal'));
                 
                 // Research tool cards
                 document.querySelectorAll('.research-tool-card').forEach(card => {
@@ -6598,18 +6602,18 @@
                 });
                 
                 // History filter
-                document.getElementById('historyFilter').addEventListener('change', (e) => this.renderHistory(e.target.value));
+                on('historyFilter', 'change', (e) => this.renderHistory(e.target.value));
                 
                 // Memory
-                document.getElementById('addMemoryBtn').addEventListener('click', () => this.addMemory());
+                on('addMemoryBtn', 'click', () => this.addMemory());
                 
                 // File upload
-                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileUpload(e));
+                on('fileInput', 'change', (e) => this.handleFileUpload(e));
                 
                 // Canvas
-                document.getElementById('runCanvas').addEventListener('click', () => this.runCanvasCode());
-                document.getElementById('copyCanvas').addEventListener('click', () => this.copyCanvasCode());
-                document.getElementById('clearCanvas').addEventListener('click', () => {
+                on('runCanvas', 'click', () => this.runCanvasCode());
+                on('copyCanvas', 'click', () => this.copyCanvasCode());
+                on('clearCanvas', 'click', () => {
                     document.getElementById('canvasEditor').value = '';
                     document.getElementById('canvasOutput').style.display = 'none';
                 });
@@ -6625,31 +6629,31 @@
                 });
 
                 // Canvas tool buttons
-                document.getElementById('btnReview').addEventListener('click', () => this.canvasTool('review'));
-                document.getElementById('btnScanBugs').addEventListener('click', () => this.canvasTool('scanBugs'));
-                document.getElementById('btnSecurity').addEventListener('click', () => this.canvasTool('security'));
-                document.getElementById('btnAnalyzePerf').addEventListener('click', () => this.canvasTool('analyzePerf'));
-                document.getElementById('btnExplain').addEventListener('click', () => this.canvasTool('explain'));
-                document.getElementById('btnTranslate').addEventListener('click', () => this.canvasTool('translate'));
-                document.getElementById('btnGenerateTests').addEventListener('click', () => this.canvasTool('generateTests'));
-                document.getElementById('btnGenerateDocs').addEventListener('click', () => this.canvasTool('generateDocs'));
-                document.getElementById('btnComplexity').addEventListener('click', () => this.canvasTool('complexity'));
-                document.getElementById('btnDeadCode').addEventListener('click', () => this.canvasTool('deadCode'));
-                document.getElementById('btnOrganizeImports').addEventListener('click', () => this.canvasTool('organizeImports'));
-                document.getElementById('btnDiff').addEventListener('click', () => this.openModal('diffModal'));
-                document.getElementById('btnRegex').addEventListener('click', () => this.openModal('regexModal'));
+                on('btnReview', 'click', () => this.canvasTool('review'));
+                on('btnScanBugs', 'click', () => this.canvasTool('scanBugs'));
+                on('btnSecurity', 'click', () => this.canvasTool('security'));
+                on('btnAnalyzePerf', 'click', () => this.canvasTool('analyzePerf'));
+                on('btnExplain', 'click', () => this.canvasTool('explain'));
+                on('btnTranslate', 'click', () => this.canvasTool('translate'));
+                on('btnGenerateTests', 'click', () => this.canvasTool('generateTests'));
+                on('btnGenerateDocs', 'click', () => this.canvasTool('generateDocs'));
+                on('btnComplexity', 'click', () => this.canvasTool('complexity'));
+                on('btnDeadCode', 'click', () => this.canvasTool('deadCode'));
+                on('btnOrganizeImports', 'click', () => this.canvasTool('organizeImports'));
+                on('btnDiff', 'click', () => this.openModal('diffModal'));
+                on('btnRegex', 'click', () => this.openModal('regexModal'));
 
                 // Collab
-                document.getElementById('generateShareLink').addEventListener('click', () => this.generateShareLink());
-                document.getElementById('copyShareLink').addEventListener('click', () => this.copyShareLink());
+                on('generateShareLink', 'click', () => this.generateShareLink());
+                on('copyShareLink', 'click', () => this.copyShareLink());
 
                 // Git
-                document.getElementById('btnGitCommit').addEventListener('click', () => this.gitCommit());
-                document.getElementById('btnGitPush').addEventListener('click', () => this.gitPush());
-                document.getElementById('btnRefreshDeps').addEventListener('click', () => this.refreshDeps());
+                on('btnGitCommit', 'click', () => this.gitCommit());
+                on('btnGitPush', 'click', () => this.gitPush());
+                on('btnRefreshDeps', 'click', () => this.refreshDeps());
 
                 // API Client
-                document.getElementById('btnGenerateApi').addEventListener('click', () => this.generateApiClient());
+                on('btnGenerateApi', 'click', () => this.generateApiClient());
 
                 // DevOps
                 document.querySelectorAll('.devops-option').forEach(opt => {
@@ -6658,36 +6662,36 @@
                         opt.classList.add('selected');
                     });
                 });
-                document.getElementById('btnGenerateDevops').addEventListener('click', () => this.generateDevops());
+                on('btnGenerateDevops', 'click', () => this.generateDevops());
 
                 // Modals
-                document.getElementById('closeDiff').addEventListener('click', () => this.closeModal('diffModal'));
-                document.getElementById('compareDiff').addEventListener('click', () => this.compareDiff());
-                document.getElementById('closeRegex').addEventListener('click', () => this.closeModal('regexModal'));
-                document.getElementById('testRegex').addEventListener('click', () => this.testRegex());
-                document.getElementById('closeProject').addEventListener('click', () => this.closeModal('projectModal'));
+                on('closeDiff', 'click', () => this.closeModal('diffModal'));
+                on('compareDiff', 'click', () => this.compareDiff());
+                on('closeRegex', 'click', () => this.closeModal('regexModal'));
+                on('testRegex', 'click', () => this.testRegex());
+                on('closeProject', 'click', () => this.closeModal('projectModal'));
                 document.querySelectorAll('.project-template').forEach(t => {
                     t.addEventListener('click', () => {
                         document.querySelectorAll('.project-template').forEach(x => x.classList.remove('selected'));
                         t.classList.add('selected');
                     });
                 });
-                document.getElementById('generateProject').addEventListener('click', () => this.generateProject());
-                document.getElementById('closeSql').addEventListener('click', () => this.closeModal('sqlModal'));
-                document.getElementById('analyzeSql').addEventListener('click', () => this.analyzeSql());
-                document.getElementById('closeError').addEventListener('click', () => this.closeModal('errorModal'));
-                document.getElementById('decodeError').addEventListener('click', () => this.decodeError());
-                document.getElementById('closeSchema').addEventListener('click', () => this.closeModal('schemaModal'));
-                document.getElementById('closeDiagram').addEventListener('click', () => this.closeModal('diagramModal'));
+                on('generateProject', 'click', () => this.generateProject());
+                on('closeSql', 'click', () => this.closeModal('sqlModal'));
+                on('analyzeSql', 'click', () => this.analyzeSql());
+                on('closeError', 'click', () => this.closeModal('errorModal'));
+                on('decodeError', 'click', () => this.decodeError());
+                on('closeSchema', 'click', () => this.closeModal('schemaModal'));
+                on('closeDiagram', 'click', () => this.closeModal('diagramModal'));
                 document.querySelectorAll('.diagram-type').forEach(d => {
                     d.addEventListener('click', () => {
                         document.querySelectorAll('.diagram-type').forEach(x => x.classList.remove('selected'));
                         d.classList.add('selected');
                     });
                 });
-                document.getElementById('generateDiagram').addEventListener('click', () => this.generateDiagram());
-                document.getElementById('closeSO').addEventListener('click', () => this.closeModal('soModal'));
-                document.getElementById('doSOSearch').addEventListener('click', () => this.searchSO());
+                on('generateDiagram', 'click', () => this.generateDiagram());
+                on('closeSO', 'click', () => this.closeModal('soModal'));
+                on('doSOSearch', 'click', () => this.searchSO());
                 
                 // Agent cards
                 document.querySelectorAll('.agent-card').forEach(card => {
@@ -7536,7 +7540,7 @@
                     });
                 });
                 
-                document.getElementById('skillsSearch').addEventListener('input', (e) => {
+                on('skillsSearch', 'input', (e) => {
                     const q = e.target.value.toLowerCase();
                     document.querySelectorAll('.skill-card').forEach(card => {
                         const name = card.querySelector('h4').textContent.toLowerCase();
@@ -7545,7 +7549,7 @@
                     });
                 });
                 
-                document.getElementById('addParamBtn').addEventListener('click', () => {
+                on('addParamBtn', 'click', () => {
                     const div = document.createElement('div');
                     div.className = 'param-row';
                     div.innerHTML = `
@@ -7565,7 +7569,7 @@
                     btn.addEventListener('click', () => btn.parentElement.remove());
                 });
                 
-                document.getElementById('saveSkillBtn').addEventListener('click', () => {
+                on('saveSkillBtn', 'click', () => {
                     const name = document.getElementById('skillName').value;
                     const icon = document.getElementById('skillIcon').value;
                     const prompt = document.getElementById('skillPrompt').value;
@@ -7587,7 +7591,7 @@
                     this.toast('Skill saved successfully!', 'success');
                 });
                 
-                document.getElementById('testSkillBtn').addEventListener('click', () => {
+                on('testSkillBtn', 'click', () => {
                     const prompt = document.getElementById('skillPrompt').value;
                     if (!prompt) {
                         this.toast('Please enter a prompt to test', 'error');
@@ -7598,7 +7602,7 @@
                     this.toast('Testing skill...', 'info');
                 });
                 
-                document.getElementById('addStepBtn').addEventListener('click', () => {
+                on('addStepBtn', 'click', () => {
                     const steps = document.querySelectorAll('.chain-step');
                     const num = steps.length + 1;
                     const div = document.createElement('div');
@@ -7618,7 +7622,7 @@
                     document.getElementById('chainSteps').appendChild(div);
                 });
                 
-                document.getElementById('addTriggerBtn').addEventListener('click', () => {
+                on('addTriggerBtn', 'click', () => {
                     const div = document.createElement('div');
                     div.className = 'trigger-row';
                     div.innerHTML = `
@@ -7634,7 +7638,7 @@
                     document.getElementById('triggerConditions').appendChild(div);
                 });
                 
-                document.getElementById('saveChainBtn').addEventListener('click', () => {
+                on('saveChainBtn', 'click', () => {
                     const name = document.getElementById('chainName').value;
                     const steps = Array.from(document.querySelectorAll('.chain-step .step-skill')).map(s => s.value).filter(v => v);
                     const triggers = Array.from(document.querySelectorAll('.trigger-row')).map(row => ({
@@ -7659,7 +7663,7 @@
                     this.toast('Chain saved successfully!', 'success');
                 });
                 
-                document.getElementById('importSkillsBtn').addEventListener('click', () => {
+                on('importSkillsBtn', 'click', () => {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.accept = '.json';
@@ -7682,7 +7686,7 @@
                     input.click();
                 });
                 
-                document.getElementById('exportSkillsBtn').addEventListener('click', () => {
+                on('exportSkillsBtn', 'click', () => {
                     const data = {
                         skills: this.state.skills,
                         chains: this.state.skillChains,
@@ -8730,7 +8734,7 @@
                 if (tool === 'compliance') {
                     const framework = document.getElementById('complianceFramework').value;
                     this.renderComplianceChecklist(framework);
-                    document.getElementById('complianceFramework').addEventListener('change', (e) => {
+                    on('complianceFramework', 'change', (e) => {
                         this.renderComplianceChecklist(e.target.value);
                     });
                 }
