@@ -6297,9 +6297,10 @@
                 this.applySettings();
                 
                 // Initialize encryption key if not set
-                if (!document.getElementById('encryptionKey').value) {
+                const encKey = document.getElementById('encryptionKey');
+                if (encKey && !encKey.value) {
                     const key = 'aether-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                    document.getElementById('encryptionKey').value = key;
+                    encKey.value = key;
                 }
             },
 
@@ -6442,7 +6443,7 @@
                 // Security features
                 document.getElementById('regenerateKey').addEventListener('click', () => {
                     const key = 'aether-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                    document.getElementById('encryptionKey').value = key;
+                    encKey.value = key;
                     this.toast('Encryption key regenerated', 'success');
                 });
                 
@@ -7202,15 +7203,16 @@
             },
 
             applySettings() {
-                document.getElementById('temperatureSlider').value = this.state.settings.temperature;
-                document.getElementById('tempValue').textContent = this.state.settings.temperature;
-                document.getElementById('maxTokensSlider').value = this.state.settings.maxTokens;
-                document.getElementById('tokensValue').textContent = this.state.settings.maxTokens;
-                document.getElementById('thinkingToggle').classList.toggle('active', this.state.settings.thinking);
-                document.getElementById('streamingToggle').classList.toggle('active', this.state.settings.streaming);
-                document.getElementById('syntaxToggle').classList.toggle('active', this.state.settings.syntax);
-                document.getElementById('themeSelect').value = this.state.settings.theme;
-                document.getElementById('fontSizeSelect').value = this.state.settings.fontSize;
+                const safe = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+                safe('temperatureSlider', el => el.value = this.state.settings.temperature);
+                safe('tempValue', el => el.textContent = this.state.settings.temperature);
+                safe('maxTokensSlider', el => el.value = this.state.settings.maxTokens);
+                safe('tokensValue', el => el.textContent = this.state.settings.maxTokens);
+                safe('thinkingToggle', el => el.classList.toggle('active', this.state.settings.thinking));
+                safe('streamingToggle', el => el.classList.toggle('active', this.state.settings.streaming));
+                safe('syntaxToggle', el => el.classList.toggle('active', this.state.settings.syntax));
+                safe('themeSelect', el => el.value = this.state.settings.theme);
+                safe('fontSizeSelect', el => el.value = this.state.settings.fontSize);
                 this.applyTheme();
             },
 
