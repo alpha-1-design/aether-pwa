@@ -7503,8 +7503,8 @@
                     </div>
                 `;
                 
-                document.getElementById('skillsGrid').innerHTML = skills.map(renderSkillCard).join('');
-                document.getElementById('featuredSkills').innerHTML = skills.slice(0, 4).map(renderSkillCard).join('');
+                const sg = document.getElementById('skillsGrid'); if(sg) sg.innerHTML = skills.map(renderSkillCard).join('');
+                const fs = document.getElementById('featuredSkills'); if(fs) fs.innerHTML = skills.slice(0, 4).map(renderSkillCard).join('');
                 
                 document.querySelectorAll('.skill-card').forEach(card => {
                     card.addEventListener('click', () => this.useSkill(card.dataset.skill));
