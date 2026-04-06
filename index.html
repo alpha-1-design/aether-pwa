@@ -7540,7 +7540,7 @@
                     });
                 });
                 
-                on('skillsSearch', 'input', (e) => {
+                const skillsSearch = document.getElementById('skillsSearch'); if (skillsSearch) skillsSearch.addEventListener('input', (e) => {
                     const q = e.target.value.toLowerCase();
                     document.querySelectorAll('.skill-card').forEach(card => {
                         const name = card.querySelector('h4').textContent.toLowerCase();
@@ -7549,7 +7549,7 @@
                     });
                 });
                 
-                on('addParamBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('addParamBtn'); if(_el) _el.addEventListener('click', () => {
                     const div = document.createElement('div');
                     div.className = 'param-row';
                     div.innerHTML = `
@@ -7569,7 +7569,7 @@
                     btn.addEventListener('click', () => btn.parentElement.remove());
                 });
                 
-                on('saveSkillBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('saveSkillBtn'); if(_el) _el.addEventListener('click', () => {
                     const name = document.getElementById('skillName').value;
                     const icon = document.getElementById('skillIcon').value;
                     const prompt = document.getElementById('skillPrompt').value;
@@ -7591,7 +7591,7 @@
                     this.toast('Skill saved successfully!', 'success');
                 });
                 
-                on('testSkillBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('testSkillBtn'); if(_el) _el.addEventListener('click', () => {
                     const prompt = document.getElementById('skillPrompt').value;
                     if (!prompt) {
                         this.toast('Please enter a prompt to test', 'error');
@@ -7602,7 +7602,7 @@
                     this.toast('Testing skill...', 'info');
                 });
                 
-                on('addStepBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('addStepBtn'); if(_el) _el.addEventListener('click', () => {
                     const steps = document.querySelectorAll('.chain-step');
                     const num = steps.length + 1;
                     const div = document.createElement('div');
@@ -7622,7 +7622,7 @@
                     document.getElementById('chainSteps').appendChild(div);
                 });
                 
-                on('addTriggerBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('addTriggerBtn'); if(_el) _el.addEventListener('click', () => {
                     const div = document.createElement('div');
                     div.className = 'trigger-row';
                     div.innerHTML = `
@@ -7638,7 +7638,7 @@
                     document.getElementById('triggerConditions').appendChild(div);
                 });
                 
-                on('saveChainBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('saveChainBtn'); if(_el) _el.addEventListener('click', () => {
                     const name = document.getElementById('chainName').value;
                     const steps = Array.from(document.querySelectorAll('.chain-step .step-skill')).map(s => s.value).filter(v => v);
                     const triggers = Array.from(document.querySelectorAll('.trigger-row')).map(row => ({
@@ -7663,7 +7663,7 @@
                     this.toast('Chain saved successfully!', 'success');
                 });
                 
-                on('importSkillsBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('importSkillsBtn'); if(_el) _el.addEventListener('click', () => {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.accept = '.json';
@@ -7686,7 +7686,7 @@
                     input.click();
                 });
                 
-                on('exportSkillsBtn', 'click', () => {
+                (function(){ const _el = document.getElementById('exportSkillsBtn'); if(_el) _el.addEventListener('click', () => {
                     const data = {
                         skills: this.state.skills,
                         chains: this.state.skillChains,
@@ -8734,7 +8734,7 @@
                 if (tool === 'compliance') {
                     const framework = document.getElementById('complianceFramework').value;
                     this.renderComplianceChecklist(framework);
-                    on('complianceFramework', 'change', (e) => {
+                    (function(){ const _el = document.getElementById('complianceFramework'); if(_el) _el.addEventListener('change', (e) => {
                         this.renderComplianceChecklist(e.target.value);
                     });
                 }
