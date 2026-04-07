@@ -9,7 +9,12 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='.')
-CORS(app)
+
+FRONTEND_URL = os.getenv('FRONTEND_URL', '')
+if FRONTEND_URL:
+    CORS(app, origins=[FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'])
+else:
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 @app.route('/')
 def index():
@@ -484,6 +489,253 @@ def embed():
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+
+
+# ==================== MCP SERVER ENDPOINTS ====================
+# Model Context Protocol (MCP) compatible endpoints for development integrations
+
+MCP_TOOLS = [
+    {
+        "name": "read_file",
+        "description": "Read contents of a file from the filesystem",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the file to read"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "write_file",
+        "description": "Write content to a file on the filesystem",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the file to write"},
+                "content": {"type": "string", "description": "Content to write to the file"}
+            },
+            "required": ["path", "content"]
+        }
+    },
+    {
+        "name": "list_directory",
+        "description": "List contents of a directory",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the directory to list"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "execute_command",
+        "description": "Execute a shell command and return the output",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The shell command to execute"},
+                "cwd": {"type": "string", "description": "Working directory for the command"}
+            },
+            "required": ["command"]
+        }
+    },
+    {
+        "name": "search_files",
+        "description": "Search for files matching a pattern",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string", "description": "Glob pattern to match files"},
+                "path": {"type": "string", "description": "Directory to search in"}
+            },
+            "required": ["pattern"]
+        }
+    },
+    {
+        "name": "get_ai_response",
+        "description": "Get an AI response for a given prompt",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string", "description": "The prompt to send to the AI"},
+                "model": {"type": "string", "description": "Model to use (defaults to configured default)"},
+                "provider": {"type": "string", "description": "Provider to use (openrouter, anthropic, openai, google)"}
+            },
+            "required": ["prompt"]
+        }
+    },
+    {
+        "name": "web_search",
+        "description": "Search the web for information",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query"},
+                "num_results": {"type": "number", "description": "Number of results to return"}
+            },
+            "required": ["query"]
+        }
+    }
+]
+
+
+@app.route("/api/mcp/tools", methods=["GET"])
+def mcp_list_tools():
+    """List all available MCP tools"""
+    return jsonify({
+        "tools": MCP_TOOLS,
+        "version": "1.0.0",
+        "name": "Aether MCP Server",
+        "description": "Development tools integration for Aether AI"
+    })
+
+
+@app.route("/api/mcp/call", methods=["POST"])
+@rate_limit
+@log_request
+def mcp_call_tool():
+    """Call an MCP tool with arguments"""
+    data = request.get_json()
+    
+    if not data or "tool" not in data or "arguments" not in data:
+        return jsonify({"error": "Missing 'tool' or 'arguments' in request body"}), 400
+    
+    tool_name = data["tool"]
+    args = data["arguments"]
+    
+    # Find the tool
+    tool = next((t for t in MCP_TOOLS if t["name"] == tool_name), None)
+    if not tool:
+        return jsonify({"error": f"Unknown tool: {tool_name}"}), 400
+    
+    try:
+        if tool_name == "read_file":
+            import pathlib
+            file_path = os.path.join(os.getcwd(), args.get("path", ""))
+            p = pathlib.Path(file_path)
+            if not p.exists():
+                return jsonify({"error": f"File not found: {args['path']}"}), 404
+            return jsonify({
+                "success": True,
+                "content": p.read_text()[:50000]  # Limit to 50k chars
+            })
+        
+        elif tool_name == "write_file":
+            import pathlib
+            file_path = os.path.join(os.getcwd(), args.get("path", ""))
+            p = pathlib.Path(file_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(args.get("content", ""))
+            return jsonify({"success": True, "path": args["path"]})
+        
+        elif tool_name == "list_directory":
+            import pathlib
+            dir_path = os.path.join(os.getcwd(), args.get("path", "."))
+            p = pathlib.Path(dir_path)
+            if not p.exists():
+                return jsonify({"error": f"Directory not found: {args['path']}"}), 404
+            items = [{"name": item.name, "type": "dir" if item.is_dir() else "file"} 
+                     for item in p.iterdir()][:100]  # Limit to 100 items
+            return jsonify({"success": True, "items": items})
+        
+        elif tool_name == "execute_command":
+            import subprocess
+            result = subprocess.run(
+                args["command"],
+                shell=True,
+                cwd=args.get("cwd", os.getcwd()),
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            return jsonify({
+                "success": result.returncode == 0,
+                "stdout": result.stdout[:10000],
+                "stderr": result.stderr[:10000],
+                "returncode": result.returncode
+            })
+        
+        elif tool_name == "search_files":
+            import pathlib
+            import fnmatch
+            base_path = os.path.join(os.getcwd(), args.get("path", "."))
+            pattern = args.get("pattern", "*")
+            matches = []
+            for p in pathlib.Path(base_path).rglob(pattern):
+                if len(matches) >= 100:
+                    break
+                matches.append(str(p.relative_to(base_path)))
+            return jsonify({"success": True, "matches": matches})
+        
+        elif tool_name == "get_ai_response":
+            # Use the chat endpoint
+            from flask import make_response
+            messages = [{"role": "user", "content": args.get("prompt", "")}]
+            response = chat()
+            return response
+        
+        elif tool_name == "web_search":
+            result = search()
+            return result
+        
+        return jsonify({"error": f"Tool {tool_name} not implemented"}), 500
+    
+    except Exception as e:
+        logger.error(f"MCP tool error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/fetch", methods=["POST"])
+def api_fetch():
+    """Fetch external data from URLs for AI processing"""
+    try:
+        data = request.get_json()
+        url = data.get('url', '')
+        
+        if not url:
+            return jsonify({"error": "URL required"}), 400
+        
+        import urllib.request
+        import json
+        
+        req = urllib.request.Request(
+            url,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; AetherAI/1.0)',
+                'Accept': 'application/json, text/plain, */*'
+            }
+        )
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            content = response.read()
+            try:
+                json_data = json.loads(content)
+                return jsonify({"data": json_data})
+            except:
+                return jsonify({"data": content.decode('utf-8', errors='ignore')})
+                
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/mcp/manifest", methods=["GET"])
+def mcp_manifest():
+    """Return MCP server manifest for client discovery"""
+    return jsonify({
+        "schemaVersion": "1.0.0",
+        "name": "Aether AI",
+        "version": "1.0.0",
+        "description": "Universal AI assistant with development tool integrations",
+        "capabilities": {
+            "tools": True,
+            "resources": True,
+            "prompts": True
+        },
+        "tools": MCP_TOOLS,
+        "baseUrl": f"{request.host_url}api/mcp"
+    })
 
 
 if __name__ == "__main__":
