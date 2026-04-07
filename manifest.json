@@ -1,0 +1,36 @@
+{
+  "name": "Aether AI",
+  "short_name": "Aether",
+  "description": "The ultimate unified AI platform - combining the best of every AI assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#6b00ff",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><circle cx='100' cy='100' r='65' fill='%231a0033' stroke='%2300ffff' stroke-width='12'/><ellipse cx='100' cy='100' rx='85' ry='22' fill='none' stroke='%2300ffff' stroke-width='12' opacity='0.7' transform='rotate(35 100 100)'/><circle cx='100' cy='100' r='32' fill='%2300ccff'/></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "Chat",
+      "description": "Start a new conversation",
+      "url": "/?action=new",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>", "sizes": "any" }]
+    },
+    {
+      "name": "GPTs Studio",
+      "short_name": "GPTs",
+      "description": "Create custom AI assistants",
+      "url": "/?view=gpts",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>", "sizes": "any" }]
+    }
+  ]
+}
