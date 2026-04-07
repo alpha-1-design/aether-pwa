@@ -115,13 +115,13 @@ class AppController {
     }
 
     if (this.elements.devToolsBtn) {
-      this.elements.devToolsBtn.addEventListener('click', () => {
+      this.elements.devToolsBtn.addEventListener('click', async () => {
         toast.info('Initializing DevTools...');
         modal.open('Developer Tools', `
           <div class="devtools-container">
             <div class="tool-section">
               <h4>MCP Tool Registry</h4>
-              <div id="mcp-tool-list">Loading available tools...</div>
+              <div id="mcp-tool-list" class="tool-list-container">Loading available tools...</div>
             </div>
             <div class="tool-section">
               <h4>Sandbox Execution</h4>
@@ -135,6 +135,25 @@ class AppController {
         `, {
           width: 800
         });
+
+        // Fetch and render tools
+        setTimeout(async () => {
+          const toolList = document.getElementById('mcp-tool-list');
+          try {
+            const tools = await aiService.getAvailableTools();
+            if (tools && tools.length > 0) {
+              toolList.innerHTML = tools.map(t => `
+                <div class="tool-item">
+                  <strong>${t.name}</strong>: ${t.description}
+                </div>
+              `).join('');
+            } else {
+              toolList.innerHTML = 'No MCP tools registered on server.';
+            }
+          } catch (e) {
+            toolList.innerHTML = 'Failed to load tools from backend.';
+          }
+        }, 100);
 
         // Bind sandbox button after modal opens
         setTimeout(() => {
