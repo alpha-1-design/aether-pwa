@@ -8,23 +8,13 @@ from collections import defaultdict
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__)
 
 FRONTEND_URL = os.getenv('FRONTEND_URL', '')
 if FRONTEND_URL:
     CORS(app, origins=[FRONTEND_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'])
 else:
     CORS(app, resources={r"/api/*": {"origins": "*"}})
-
-@app.route('/')
-def index():
-    return send_from_directory('.', 'index.html')
-
-@app.route('/<path:path>')
-def static_files(path):
-    if os.path.exists(path):
-        return send_from_directory('.', path)
-    return send_from_directory('.', 'index.html')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
