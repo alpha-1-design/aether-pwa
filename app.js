@@ -453,7 +453,7 @@ export class ThemeManager {
     this.storage = new ExpirableStorage('theme_');
     this.themes = {
       dark: {
-        name: 'Dark',
+        name: 'Studio Dark',
         vars: {
           '--bg-primary': '#0a0a1a',
           '--bg-secondary': '#1a1a2e',
@@ -466,38 +466,6 @@ export class ThemeManager {
           '--success': '#22c55e',
           '--warning': '#f59e0b',
           '--error': '#ef4444'
-        }
-      },
-      light: {
-        name: 'Light',
-        vars: {
-          '--bg-primary': '#ffffff',
-          '--bg-secondary': '#f5f5f7',
-          '--bg-tertiary': '#e8e8ed',
-          '--text-primary': '#1a1a2e',
-          '--text-secondary': '#6b6b7a',
-          '--accent': '#6366f1',
-          '--accent-hover': '#4f46e5',
-          '--border': '#e0e0e0',
-          '--success': '#16a34a',
-          '--warning': '#d97706',
-          '--error': '#dc2626'
-        }
-      },
-      cosmic: {
-        name: 'Cosmic',
-        vars: {
-          '--bg-primary': '#0f0118',
-          '--bg-secondary': '#1a0a2e',
-          '--bg-tertiary': '#2d1b4e',
-          '--text-primary': '#e9e4f0',
-          '--text-secondary': '#a89bc2',
-          '--accent': '#a855f7',
-          '--accent-hover': '#c084fc',
-          '--border': '#4c1d95',
-          '--success': '#34d399',
-          '--warning': '#fbbf24',
-          '--error': '#f87171'
         }
       }
     };
@@ -525,11 +493,7 @@ export class ThemeManager {
   }
 
   toggle() {
-    const names = Object.keys(this.themes);
-    const idx = names.indexOf(this.current);
-    const next = names[(idx + 1) % names.length];
-    this.apply(next);
-    return next;
+    return 'dark';
   }
 
   getTheme() {
@@ -1614,7 +1578,7 @@ export const codeExecutor = new CodeExecutor();
 export class ArtifactSystem {
   constructor() {
     this.artifacts = new Map();
-    this.types = ['html', 'react', 'svg', 'mermaid', 'markdown', 'vega-lite'];
+    this.types = ['code', 'report', 'table', 'html', 'react', 'svg', 'mermaid', 'markdown', 'vega-lite'];
   }
 
   create(type, code, metadata = {}) {
@@ -1655,9 +1619,21 @@ export class ArtifactSystem {
   }
 
   render(artifact, container) {
-    if (!container) return;
+    if (!container) {
+      container = document.querySelector('.studio-artifact-panel');
+      if (!container) return;
+    }
 
     switch (artifact.type) {
+      case 'code':
+        this.renderCodeArtifact(artifact.code, container);
+        break;
+      case 'report':
+        this.renderReportArtifact(artifact.code, container);
+        break;
+      case 'table':
+        this.renderTableArtifact(artifact.code, container);
+        break;
       case 'html':
       case 'react':
         this.renderHTML(artifact.code, container);
@@ -1673,6 +1649,35 @@ export class ArtifactSystem {
         break;
       default:
         container.textContent = artifact.code;
+    }
+  }
+
+  renderCodeArtifact(code, container) {
+    container.innerHTML = `<div class="studio-code-view"><pre><code>${this.escapeHtml(code)}</code></pre></div>`;
+  }
+
+  renderReportArtifact(code, container) {
+    this.renderMarkdown(code, container);
+  }
+
+  renderTableArtifact(code, container) {
+    try {
+      const data = JSON.parse(code);
+      const table = document.createElement('table');
+      table.className = 'studio-table';
+      // Simple table rendering logic
+      let html = '<thead><tr>';
+      Object.keys(data[0] || {}).forEach(k => html += `<th>${k}</th>`);
+      html += '</tr></thead><tbody>';
+      data.forEach(row => {
+        html += '<tr>';
+        Object.values(row).forEach(v => html += `<td>${v}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      container.innerHTML = html;
+    } catch (e) {
+      container.textContent = code;
     }
   }
 
