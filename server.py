@@ -32,6 +32,8 @@ API_KEYS = {
     "tavily": os.getenv("TAVILY_API_KEY"),
 }
 
+logger.info(f"API Keys loaded: openrouter={'set' if API_KEYS['openrouter'] else 'NOT SET'}, anthropic={'set' if API_KEYS['anthropic'] else 'NOT SET'}, openai={'set' if API_KEYS['openai'] else 'NOT SET'}")
+
 AVAILABLE_MODELS = {
     "openrouter": [
         {"id": "anthropic/claude-3.5-sonnet", "name": "Claude 3.5 Sonnet", "context_length": 200000, "capabilities": ["chat", "thinking", "vision"]},
@@ -40,6 +42,9 @@ AVAILABLE_MODELS = {
         {"id": "openai/gpt-4-turbo", "name": "GPT-4 Turbo", "context_length": 128000, "capabilities": ["chat", "vision"]},
         {"id": "google/gemini-pro-1.5", "name": "Gemini Pro 1.5", "context_length": 1000000, "capabilities": ["chat", "vision"]},
         {"id": "meta-llama/llama-3-70b-instruct", "name": "Llama 3 70B", "context_length": 8192, "capabilities": ["chat"]},
+        {"id": "google/gemini-2.0-flash", "name": "Gemini 2.0 Flash", "context_length": 1000000, "capabilities": ["chat", "vision"]},
+        {"id": "deepseek/deepseek-chat", "name": "DeepSeek V3", "context_length": 64000, "capabilities": ["chat"]},
+        {"id": "mistralai/mistral-7b-instruct", "name": "Mistral 7B", "context_length": 8192, "capabilities": ["chat"]},
     ],
     "anthropic": [
         {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "context_length": 200000, "capabilities": ["chat", "thinking", "vision"]},
@@ -102,7 +107,7 @@ def chat():
     
     messages = data["messages"]
     provider = data.get("provider", "openrouter")
-    model = data.get("model", "anthropic/claude-3.5-sonnet")
+    model = data.get("model", "deepseek/deepseek-chat")
     thinking = data.get("thinking", False)
     temperature = data.get("temperature", 0.7)
     max_tokens = data.get("max_tokens", 4096)
@@ -741,7 +746,7 @@ def live():
     
     messages = data["messages"]
     provider = data.get("provider", "openrouter")
-    model = data.get("model", "anthropic/claude-3.5-sonnet")
+    model = data.get("model", "deepseek/deepseek-chat")
     effort = data.get("effort", "high")  # quick, deep, autonomous
     max_tokens = data.get("max_tokens", 4096)
     temperature = data.get("temperature", 0.7)

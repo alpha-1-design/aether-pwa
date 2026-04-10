@@ -414,7 +414,7 @@ class AppController {
     this.appendMessage('user', text);
 
     try {
-      const model = this.elements.modelSelector?.value || 'gpt-4';
+      const model = this.elements.modelSelector?.value || 'deepseek/deepseek-chat';
 
       // Get current conversation or create one
       let conv = conversations.getCurrent();

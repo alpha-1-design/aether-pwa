@@ -730,7 +730,7 @@ export class AIService {
   constructor() {
     this.baseUrl = '';
     this.apiKeys = this.loadKeys();
-    this.defaultModel = 'gpt-4';
+    this.defaultModel = 'deepseek/deepseek-chat';
     this.streamHandler = null;
   }
 
