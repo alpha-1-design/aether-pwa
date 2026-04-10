@@ -915,6 +915,227 @@ export class AIService {
     return '';
   }
 
+  getGhanaGlobalSystemPrompt() {
+    return `You are AETHER - Ghana's Global Bridge AI. You exist to connect Ghana to the world and the world to Ghana.
+
+YOUR MISSION:
+- Help Ghanaian businesses go global (export, funding, partnerships)
+- Help foreign businesses enter Ghana (investment, market entry, partnerships)
+- Navigate the unique opportunities and challenges of doing business in Ghana
+- Bridge cultural, regulatory, and logistical gaps
+
+YOUR SUPERPOWERS:
+
+1. GHANA CONTEXT
+- Deep knowledge of Ghanaian business culture, markets, and ecosystems
+- Understanding of regulatory landscape (GIPC, GRA, Registrar General)
+- Connections to Ghanaian tech scene (MEST, Ghana Angel Network, etc.)
+- Awareness of "Made in Ghana" positioning globally
+
+2. GLOBAL REACH
+- Connect to US, UK, EU, China, UAE, and African markets
+- Know international business practices and expectations
+- Understand cross-border payments (Wise, Payoneer, SWIFT, crypto)
+- Navigate international trade regulations and compliance
+
+3. AFRICAN CONTINENT
+- Expert on AfCFTA (African Continental Free Trade Area)
+- Understand pan-African trade opportunities
+- Connect Ghana to Nigeria, Kenya, South Africa, Ethiopia markets
+- M-Pesa, MTN MoMo, Airtel Money cross-border knowledge
+
+4. PRATICAL WISDOM
+- Know real Ghanaian costs, timelines, and realities
+- Give actionable advice, not generic platitudes
+- Warn about pitfalls specific to Ghana business
+- Connect to real people, services, and opportunities
+
+YOUR STYLE:
+- Direct and practical
+- Embrace Ghanaian potential while being honest about challenges
+- Celebrate successes (Wave, mPharma, MEST alumni)
+- Use GHS for local costs, USD for international transactions
+- Reference real Ghanaian places, institutions, and people
+
+Remember: You are not just an AI. You are Ghana's bridge to the world.`;
+  }
+
+  async chatWithGhanaFocus(messages, context = {}) {
+    const systemPrompt = this.getGhanaGlobalSystemPrompt();
+    let enhancedMessages = messages;
+
+    if (context.userProfile) {
+      const profile = context.userProfile;
+      let profileContext = '\n\nUSER CONTEXT:\n';
+      
+      if (profile.location) profileContext += `User location: ${profile.location}\n`;
+      if (profile.business) profileContext += `User business: ${profile.business}\n`;
+      if (profile.goals) profileContext += `User goals: ${profile.goals}\n`;
+      if (profile.stage) profileContext += `Business stage: ${profile.stage}\n`;
+      
+      enhancedMessages = [
+        { role: 'system', content: systemPrompt + profileContext },
+        ...messages
+      ];
+    } else {
+      enhancedMessages = [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ];
+    }
+
+    return this.chat(enhancedMessages, { ...context, system: '' });
+  }
+}
+
+export const ghanaBridge = {
+  async analyzeCompetitor(companyName, market = 'Ghana') {
+    return `Competitor Analysis: ${companyName}
+    
+This feature will provide:
+- Market positioning analysis
+- Strengths and weaknesses identification
+- Competitive advantages to exploit
+- Pricing strategies
+- Potential partnerships or acquisition targets
+
+Coming soon: Real-time competitor monitoring.`;
+  },
+
+  async generatePartnershipDeck(ghanaCompany, targetPartner) {
+    return `Partnership Proposal for ${targetPartner}
+
+This will include:
+- Why this partnership wins for both sides
+- Complementary strengths
+- Revenue synergy opportunities
+- Cultural alignment factors
+- Proposed terms and structure
+- Next steps checklist
+
+Coming soon: AI-matched partnership opportunities.`;
+  },
+
+  async marketEntryStrategy(homeCountry, targetCountry, businessType) {
+    const strategies = {
+      'Ghana to USA': 'Direct export via Amazon, B2B platforms, diaspora networks',
+      'USA to Ghana': 'Joint venture with local partner, acquisition, licensing',
+      'Ghana to Nigeria': 'AfCFTA advantage, similar market dynamics, diaspora connection',
+      'Any to Africa': 'Pan-African expansion via Ghana as hub, AfCFTA benefits'
+    };
+    
+    return strategies[`${homeCountry} to ${targetCountry}`] || strategies['Any to Africa'];
+  },
+
+  getMarketIntel(category = 'all') {
+    const intel = {
+      fintech: {
+        leaders: ['Wave', 'Paga', 'Flutterwave'],
+        opportunities: ['Cross-border payments', 'SME lending', 'Insurance tech'],
+        threats: ['MTN MoMo dominance', 'Regulatory uncertainty']
+      },
+      ecommerce: {
+        leaders: ['Jumia', 'Konga', 'DukaNova'],
+        opportunities: ['Last-mile delivery', 'Social commerce', 'B2B procurement'],
+        threats: ['Logistics challenges', 'Trust issues']
+      },
+      healthtech: {
+        leaders: ['mPharma', 'Sycamore'],
+        opportunities: ['Telehealth', 'Insurance integration', 'Pharmacy tech'],
+        threats: ['Regulatory approval', 'Trust in digital health']
+      },
+      agritech: {
+        leaders: ['AgroCenta', 'Farmerline'],
+        opportunities: ['Input financing', 'Market access', 'Cold chain'],
+        threats: ['Seasonal nature', 'Farmer adoption']
+      }
+    };
+
+    return category === 'all' ? intel : intel[category] || intel.ecommerce;
+  }
+};
+
+export class GhanaGlobalBridge {
+  constructor(aiService) {
+    this.ai = aiService;
+    this.cache = new ExpirableStorage('ghana_bridge_');
+    this.connections = new Map();
+  }
+
+  async setup() {
+    const savedConnections = this.cache.get('connections');
+    if (savedConnections) {
+      this.connections = new Map(savedConnections);
+    }
+  }
+
+  async connectMarket(marketA, marketB, options = {}) {
+    const key = `${marketA}-${marketB}`;
+    
+    if (this.cache.get(key)) {
+      return this.cache.get(key);
+    }
+
+    const connection = {
+      from: marketA,
+      to: marketB,
+      opportunities: await this.findOpportunities(marketA, marketB),
+      barriers: await this.identifyBarriers(marketA, marketB),
+      solutions: await this.proposeSolutions(marketA, marketB),
+      contacts: await this.findContacts(marketA, marketB),
+      ...options
+    };
+
+    this.connections.set(key, connection);
+    this.cache.set(key, connection, 86400);
+
+    return connection;
+  }
+
+  async findOpportunities(marketA, marketB) {
+    return [
+      'Trade complementarity gaps',
+      'Price arbitrage opportunities',
+      'Underserved customer segments',
+      'Partnership possibilities',
+      'Investment potential'
+    ];
+  }
+
+  async identifyBarriers(marketA, marketB) {
+    return [
+      'Regulatory differences',
+      'Payment infrastructure gaps',
+      'Cultural understanding',
+      'Trust establishment',
+      'Logistics challenges'
+    ];
+  }
+
+  async proposeSolutions(marketA, marketB) {
+    return [
+      'Strategic partnership with local entity',
+      'Phased market entry approach',
+      'Digital-first strategy to minimize physical presence risk',
+      'Diaspora network leverage',
+      'Demo day / proof of concept with anchor client'
+    ];
+  }
+
+  async findContacts(marketA, marketB) {
+    return {
+      accelerators: ['MEST', 'Ghana Tech Lab', 'ASHA Impact'],
+      vcs: ['Ghana Angel Network', 'Google for Startups', 'TEDAfrica'],
+      chambers: ['Ghana-US Chamber', 'Ghana-UK Chamber', 'Afropreneur Hub'],
+      advisors: ['Big Kev', 'MEST Alumni Network']
+    };
+  }
+
+  exportConnections() {
+    return JSON.stringify(Array.from(this.connections.entries()));
+  }
+}
+
   async search(query, options = {}) {
     const { limit = 10 } = options;
     
@@ -1805,6 +2026,167 @@ export class TemplatesEngine {
         category: 'creative',
         prompt: 'Brainstorm creative ideas for {{topic}}.\n\nConstraints: {{constraints}}\n\nGenerate {{count}} diverse ideas.',
         variables: ['topic', 'constraints', 'count']
+      },
+      {
+        id: 'ghana_business_plan',
+        name: 'Ghana Business Plan',
+        category: 'ghana',
+        prompt: 'Create a comprehensive Ghana-focused business plan for {{business_idea}}.\n\nInclude:\n1. Executive Summary\n2. Market Analysis (Ghana context, local competitors)\n3. Target customers in Ghana\n4. Revenue model suitable for Ghana market\n5. Startup costs in GHS\n6. Regulatory requirements ( Registrar General\'s Department, GRA)\n7. Growth strategy for Accra/Ghana\n\nMake it investor-ready for Ghanaian VCs and institutions like Ghana Angel Network.',
+        variables: ['business_idea']
+      },
+      {
+        id: 'ghana_grant_proposal',
+        name: 'Grant Proposal',
+        category: 'ghana',
+        prompt: 'Draft a compelling grant proposal for {{grant_source}}.\n\nProject: {{project_description}}\nBudget: GHS {{budget}}\nTimeline: {{timeline}}\n\nInclude:\n- Problem statement (Ghana context)\n- Solution & impact\n- Budget breakdown in GHS\n- Sustainability plan\n- Key metrics for Ghana impact',
+        variables: ['grant_source', 'project_description', 'budget', 'timeline']
+      },
+      {
+        id: 'ghana_pitch_deck',
+        name: 'Pitch Deck (Ghana)',
+        category: 'startup',
+        prompt: 'Create a 10-slide pitch deck for {{startup_name}}, a {{startup_type}} startup in Ghana.\n\nProblem: {{problem}}\nSolution: {{solution}}\nTraction: {{traction}}\nTeam: {{team}}\nFunding ask: GHS {{funding_amount}}\n\nMake it compelling for Ghanaian investors, highlighting local market opportunity and Accra ecosystem.',
+        variables: ['startup_name', 'startup_type', 'problem', 'solution', 'traction', 'team', 'funding_amount']
+      },
+      {
+        id: 'momo_integration',
+        name: 'Mobile Money Integration',
+        category: 'ghana',
+        prompt: 'Help me integrate Mobile Money (MoMo) payments for my {{business_type}} in Ghana.\n\nI\'m considering: {{momo_provider}} (MTN/Vodafone/AirtelTigo)\nTransaction volume: {{volume}} per month\n\nProvide:\n1. Best payment provider for Ghana market\n2. Integration options (Paystack, Flutterwave, direct API)\n3. Estimated setup costs and transaction fees\n4. Compliance requirements from Bank of Ghana',
+        variables: ['business_type', 'momo_provider', 'volume']
+      },
+      {
+        id: 'ghana_market_research',
+        name: 'Ghana Market Research',
+        category: 'ghana',
+        prompt: 'Conduct market research for {{product_service}} targeting {{target_audience}} in {{location}}.\n\nInclude:\n1. Market size and growth in Ghana\n2. Key competitors operating in Ghana\n3. Consumer behavior insights for Ghanaians\n4. Pricing strategy in GHS\n5. Distribution channels in Ghana\n6. Regulatory considerations',
+        variables: ['product_service', 'target_audience', 'location']
+      },
+      {
+        id: 'ghana_seo',
+        name: 'Ghana Digital Marketing',
+        category: 'ghana',
+        prompt: 'Create a digital marketing strategy for {{business_name}} in Ghana.\n\nTarget: {{target_market}}\nBudget: GHS {{budget}}\nGoal: {{goal}}\n\nInclude:\n1. Best platforms for Ghana (TikTok, Instagram, WhatsApp)\n2. Influencer marketing strategy for Ghana\n3. Local SEO for Ghana Google\n4. Content ideas for Ghanaian audience\n5. Seasonal campaigns (Independence Day, Easter, Christmas)',
+        variables: ['business_name', 'target_market', 'budget', 'goal']
+      },
+      {
+        id: 'global_export_strategy',
+        name: 'Ghana to Global Export',
+        category: 'startup',
+        prompt: 'Help me take my Ghanaian {{product_category}} business GLOBAL.\n\nCurrent situation: {{current_status}}\nProduction capacity: {{capacity}}\n\nCreate an export strategy that covers:\n1. International market identification (US, UK, EU, Africa)\n2. Export pricing in USD/EUR vs GHS cost structure\n3. Shipping & logistics (Lagos, Nairobi, Dubai, London routes)\n4. Payment collection (international wire, PayPal, crypto)\n5. Customs, duties, and compliance for exports\n6. Brand positioning for "Made in Ghana" globally\n7. Finding international buyers and distributors',
+        variables: ['product_category', 'current_status', 'capacity']
+      },
+      {
+        id: 'foreign_investment_ghana',
+        name: 'Foreign Investment Guide',
+        category: 'startup',
+        prompt: 'Guide a {{investor_origin}} investor wanting to invest in Ghanaian {{sector}}.\n\nInvestment amount: {{amount}}\nTimeline: {{timeline}}\n\nProvide:\n1. Best Ghanaian {{sector}} startups to consider\n2. GIPC registration process for foreign investors\n3. Tax incentives (Free Zones, GRA exemptions)\n4. Reputable law firms and advisors in Accra\n5. Due diligence checklist specific to Ghana\n6. Exit strategies in Ghana/Africa\n7. Success stories of {{investor_origin}} investments in Ghana',
+        variables: ['investor_origin', 'sector', 'amount', 'timeline']
+      },
+      {
+        id: 'afcfta_navigator',
+        name: 'AfCFTA Trade Navigator',
+        category: 'startup',
+        prompt: 'Navigate AfCFTA (African Continental Free Trade Area) for my Ghanaian {{business_type}}.\n\nTarget African markets: {{target_markets}}\nProduct: {{product}}\n\nCover:\n1. AfCFTA tariff reductions applicable\n2. Certificate of Origin process (Ghanaian origin requirements)\n3. Sister company requirements vs direct export\n4. Payment solutions across African borders (M-Pesa, MTN MoMo, bank transfers)\n5. Competitors already operating in {{target_markets}}\n6. Logistics partners for intra-Africa shipping\n7. Regulatory alignment needed in target countries',
+        variables: ['business_type', 'target_markets', 'product']
+      },
+      {
+        id: 'verification_trust_builder',
+        name: 'Ghana Business Verification',
+        category: 'ghana',
+        prompt: 'Help me build TRUST for my Ghanaian business to attract {{target_audience}}.\n\nBusiness: {{business_name}}\nIndustry: {{industry}}\n\nCreate a verification & credibility package:\n1. KYC documents needed (Registrar General, GRA)\n2. Business profile template for international partners\n3. Third-party verification services in Ghana\n4. SampleMOU/partnership agreement adapted for Ghana\n5. Red flags to watch for when dealing with Ghanaian/Ghana-based businesses\n6. Escrow/hold-back payment strategies',
+        variables: ['business_name', 'industry', 'target_audience']
+      },
+      {
+        id: 'cross_border_compliance',
+        name: 'Cross-Border Compliance',
+        category: 'ghana',
+        prompt: 'Navigate compliance for {{transaction_type}} between {{country_a}} and {{country_b}}.\n\nBusiness type: {{business_type}}\nTransaction volume: {{volume}}\n\nInclude:\n1. Bank of Ghana / Central Bank regulations\n2. AML/KYC requirements\n3. FATF compliance considerations\n4. Recommended payment rails (SWIFT, Wise, Payoneer, crypto)\n5. Tax implications in both countries\n6. Legal framework for dispute resolution\n7. Recommended lawyers/arbitrators for cross-border disputes',
+        variables: ['transaction_type', 'country_a', 'country_b', 'business_type', 'volume']
+      },
+      {
+        id: 'ghana_tech_ecosystem',
+        name: 'Ghana Tech Ecosystem Map',
+        category: 'startup',
+        prompt: 'Map the Ghanaian tech ecosystem for {{purpose}}.\n\nInclude:\n1. Key hubs: Accra (Kumasi, Takoradi secondary)\n2. Top accelerators: MEST, iHunch, Ghana Tech Lab, ASHA Impact\n3. VCs & Angel networks: Ghana Angel Network, AfriLabs, Google for Startups\n4. Government support: GIPC, Ministry of Communications, Ghana Innovation Hub\n5. Key events: AfroTECH Ghana, Ghana Tech Summit, Accra Innovation Week\n6. Talent pool: Top universities (UTG, KNUST, Ashesi)\n7. Coworking spaces and incubators\n8. Success stories: Wave, AgroCenta, mPharma, PeerGain',
+        variables: ['purpose']
+      },
+      {
+        id: 'supply_chain_ghana',
+        name: 'Supply Chain Setup',
+        category: 'ghana',
+        prompt: 'Build a supply chain for {{product_type}} business in Ghana.\n\nScale: {{scale}}\nBudget: GHS {{budget}}\n\nDesign:\n1. Local sourcing strategy (market suppliers, manufacturers)\n2. Quality control checkpoints\n3. Storage/warehousing options in Ghana\n4. Last-mile delivery partners (MAX, Ordaz, P济, DHL Ghana)\n5. Cold chain if applicable\n6. Cost breakdown per unit\n7. Scalability to neighboring countries',
+        variables: ['product_type', 'scale', 'budget']
+      },
+      {
+        id: 'diaspora_product',
+        name: 'Diaspora Product Sourcing',
+        category: 'startup',
+        prompt: 'Help me source {{product_type}} from Ghana for {{target_market}} diaspora.\n\nMarket size estimate: {{market_size}}\nPreferred price point: {{price_range}}\n\nCreate:\n1. Top Ghanaian suppliers/manufacturers for {{product_type}}\n2. Quality verification process\n3. Packaging for international export\n4. Pricing strategy (GHS cost → USD selling price)\n5. Shipping options (air vs sea freight)\n6. Customs/duties for {{target_market}}\n7. E-commerce platforms to sell\n8. Marketing to diaspora communities',
+        variables: ['product_type', 'target_market', 'market_size', 'price_range']
+      },
+      {
+        id: 'tech_startup_mvp',
+        name: 'Tech Startup MVP',
+        category: 'startup',
+        prompt: 'Help me build an MVP for {{startup_idea}} in Ghana.\n\nTech stack preference: {{tech_stack}}\nBudget: GHS {{budget}}\nTimeline: {{timeline}}\n\nDesign:\n1. Core features for launch (max 3)\n2. Recommended tech stack (hosting, DB, frontend)\n3. Ghana-friendly payment integration\n4. Development roadmap\n5. MVP costs in GHS\n6. Beta tester recruitment strategy\n7. Launch in Ghana app stores\n8. First 100 customers acquisition plan',
+        variables: ['startup_idea', 'tech_stack', 'budget', 'timeline']
+      },
+      {
+        id: 'franchise_ghana',
+        name: 'Franchise Opportunity',
+        category: 'ghana',
+        prompt: 'Evaluate {{franchise_brand}} franchise opportunity in Ghana.\n\nInvestment capacity: {{investment}}\nLocation preference: {{location}}\n\nAnalyze:\n1. Brand awareness in Ghana\n2. Market fit for Ghanaian consumers\n3. Required investment breakdown (GHS)\n4. Space/real estate requirements\n5. Staffing needs and costs\n6. Supply chain for franchise\n7. Competition from local alternatives\n8. ROI timeline\n9. Support from franchisor\n10. Exit strategy',
+        variables: ['franchise_brand', 'investment', 'location']
+      },
+      {
+        id: 'govt_tender',
+        name: 'Government Tender',
+        category: 'ghana',
+        prompt: 'Help me win government contracts in Ghana.\n\nMy business: {{business_type}}\nTarget ministry/agency: {{target_govt}}\n\nGuide me:\n1. UNGMP/Ghana.gov.gh registration process\n2. Understanding tender documents\n3. Common pitfalls to avoid\n4. Pricing strategy for govt contracts\n5. Relationship building with procurement officers\n6. Compliance requirements\n7. Payment terms (and how to manage cash flow)\n8. References from similar contracts won\n9. Blacklist risks to avoid\n10. Timeline from bid to contract',
+        variables: ['business_type', 'target_govt']
+      },
+      {
+        id: 'investment_pitch',
+        name: 'Investment Pitch',
+        category: 'startup',
+        prompt: 'Create an investor pitch for {{startup_name}}.\n\nAsk: GHS {{ask_amount}}\nValuation: GHS {{valuation}}\nStage: {{stage}}\n\nStructure:\n1. Elevator pitch (30 seconds)\n2. Problem statement (Ghana-specific)\n3. Solution & traction\n4. Market size (TAM/SAM/SOM)\n5. Business model\n6. Traction & metrics\n7. Team\n8. Competitors\n9. Use of funds\n10. Exit options\n\nTailor for Ghanaian investors specifically.',
+        variables: ['startup_name', 'ask_amount', 'valuation', 'stage']
+      },
+      {
+        id: 'us_green_card_eb5',
+        name: 'US Investment Options',
+        category: 'startup',
+        prompt: 'Guide me from Ghana to US investment options.\n\nInvestment budget: USD {{budget}}\nPrimary goal: {{goal}}\n\nCover:\n1. EB-5 Immigrant Investor Program\n2. E-2 Treaty Investor Visa\n3. L-1 Intra-company Transfer (if applicable)\n4. Regional Center investments\n5. Direct business investment\n6. Startup visa programs (O-1, H-1B path)\n7. Tax implications for Ghanaian nationals\n8. Caribbean/US options for residency\n9. Timeline and realistic expectations\n10. Recommended immigration attorneys',
+        variables: ['budget', 'goal']
+      },
+      {
+        id: 'china_trade',
+        name: 'China-Ghana Trade',
+        category: 'startup',
+        prompt: 'Navigate China-Ghana trade for {{business_type}}.\n\nTrade direction: {{direction}}\nVolume: {{volume}}\n\nProvide:\n1. Canton Fair participation guide\n2. Finding manufacturers/suppliers\n3. Quality control in China\n4. Shipping to Ghana (sea freight timeline)\n5. Customs clearance Ghana\n6. Payment methods (LC, TT, Alipay)\n7. Import duties and taxes\n8. Common scams to avoid\n9. Agent/fixer recommendations\n10. Profit margin analysis',
+        variables: ['business_type', 'direction', 'volume']
+      },
+      {
+        id: 'ngo_funding',
+        name: 'NGO Grant Hunter',
+        category: 'ghana',
+        prompt: 'Find funding for {{project_type}} in {{location}}.\n\nOrganization: {{org_name}}\nBudget needed: {{budget}}\n\nSearch for:\n1. USAID Ghana opportunities\n2. DFID/FCDO UK funding\n3. EU Delegation Ghana\n4. UNDP Ghana\n5. World Bank projects\n6. Foundations (Gates, Ford, Rockefeller)\n7. Corporate CSR (MTN, Vodafone, Banks)\n8. Diaspora fundraising\n9. Crowdfunding platforms\n10. Grant writing tips for each',
+        variables: ['project_type', 'location', 'org_name', 'budget']
+      },
+      {
+        id: 'real_estate_ghana',
+        name: 'Real Estate Investment',
+        category: 'ghana',
+        prompt: 'Guide real estate investment in Ghana.\n\nInvestment: {{investment_type}}\nBudget: {{budget}}\nLocation: {{location}}\n\nCover:\n1. Land title verification (Ghana.gov.gh, Lands Commission)\n2. Due diligence checklist\n3. Hotspots in {{location}} for ROI\n4. Developer vs. direct purchase\n5. Rental yield analysis\n6. Land banking opportunities\n7. Commercial vs. residential\n8. Financing options in Ghana\n9. Rental law and tenant management\n10. Exit strategy (resale, rent)',
+        variables: ['investment_type', 'budget', 'location']
+      },
+      {
+        id: 'remittance_optimize',
+        name: 'Remittance Optimizer',
+        category: 'ghana',
+        prompt: 'Optimize remittance for {{use_case}} between {{source}} and {{destination}}.\n\nAmount: {{amount}}\nFrequency: {{frequency}}\n\nFind:\n1. Best rates for {{source}} to {{destination}}\n2. Comparison of WorldRemit, Wise, MoneyGram, Western Union\n3. Bank transfer options\n4. Crypto rails (USDT, Bitcoin)\n5. Mobile money cross-border\n6. Hidden fees to avoid\n7. Speed vs. cost tradeoff\n8. Legality and tax implications\n9. Trusted agents/avenues\n10. Annual savings calculation',
+        variables: ['use_case', 'source', 'destination', 'amount', 'frequency']
       }
     ];
   }
