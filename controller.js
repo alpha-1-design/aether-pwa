@@ -370,7 +370,12 @@ class AppController {
   }
 
   setupInitialState() {
-    this.baseUrl = import.meta.env?.VITE_API_URL || 'https://aether-pwa.onrender.com/api';
+    const apiUrl = import.meta.env?.VITE_API_URL;
+    if (apiUrl) {
+      this.baseUrl = apiUrl;
+    } else if (window.location.hostname.includes('vercel')) {
+      this.baseUrl = 'https://aether-pwa.onrender.com/api';
+    }
     aiService.baseUrl = this.baseUrl;
 
     // Load conversations

@@ -4,5 +4,7 @@
   "outputDirectory": ".",
   "installCommand": null,
   "framework": null,
-  "rewrites": []
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://aether-pwa.onrender.com/api/$1" }
+  ]
 }
