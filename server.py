@@ -1,11 +1,12 @@
 import os
+import json
 import time
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from collections import defaultdict
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -726,6 +727,142 @@ def mcp_manifest():
         "tools": MCP_TOOLS,
         "baseUrl": f"{request.host_url}api/mcp"
     })
+
+
+@app.route("/api/live", methods=["POST"])
+@rate_limit
+@log_request
+def live():
+    """Streaming chat with adaptive thinking and agentic capabilities"""
+    data = request.get_json()
+    
+    if not data or "messages" not in data:
+        return jsonify({"error": "Missing 'messages' in request body"}), 400
+    
+    messages = data["messages"]
+    provider = data.get("provider", "openrouter")
+    model = data.get("model", "anthropic/claude-3.5-sonnet")
+    effort = data.get("effort", "high")  # quick, deep, autonomous
+    max_tokens = data.get("max_tokens", 4096)
+    temperature = data.get("temperature", 0.7)
+    
+    if provider not in API_KEYS:
+        return jsonify({"error": f"Unknown provider: {provider}"}), 400
+    
+    if not API_KEYS[provider]:
+        return jsonify({"error": "API key not configured"}), 400
+    
+    def generate():
+        try:
+            if provider == "openrouter":
+                for chunk in _openrouter_stream(messages, model, effort, temperature, max_tokens):
+                    yield f"data: {json.dumps(chunk)}\n\n"
+            elif provider == "anthropic":
+                for chunk in _anthropic_stream(messages, model, effort, temperature, max_tokens):
+                    yield f"data: {json.dumps(chunk)}\n\n"
+            else:
+                yield f"data: {json.dumps({'error': 'Streaming not supported for this provider'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield "data: {\"done\": true}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
+
+
+def _openrouter_stream(messages, model, effort, temperature, max_tokens):
+    import requests
+    
+    thinking_config = _get_thinking_config(effort)
+    
+    headers = {
+        "Authorization": f"Bearer {API_KEYS['openrouter']}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://aether-pwa.app",
+        "X-Title": "Aether AI PWA",
+    }
+    
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    
+    if thinking_config and "claude" in model.lower():
+        payload["thinking"] = thinking_config
+    
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        stream=True,
+        timeout=120
+    )
+    
+    for line in response.iter_lines():
+        if line:
+            data = line.decode('utf-8')
+            if data.startswith('data: '):
+                try:
+                    chunk = json.loads(data[6:])
+                    if 'choices' in chunk and chunk['choices']:
+                        delta = chunk['choices'][0].get('delta', {})
+                        yield {
+                            "content": delta.get('content', ''),
+                            "thinking": delta.get('thinking'),
+                        }
+                except:
+                    pass
+
+
+def _anthropic_stream(messages, model, effort, temperature, max_tokens):
+    import anthropic
+    
+    thinking_config = _get_thinking_config(effort)
+    
+    client = anthropic.Anthropic(api_key=API_KEYS["anthropic"])
+    
+    system = ""
+    anthropic_messages = []
+    
+    for msg in messages:
+        if msg["role"] == "system":
+            system = msg["content"]
+        else:
+            anthropic_messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+    
+    extra_kwargs = {}
+    if thinking_config:
+        extra_kwargs["thinking"] = thinking_config
+    
+    extra_kwargs["stream"] = True
+    
+    with client.messages.stream(
+        model=model,
+        system=system,
+        messages=anthropic_messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **extra_kwargs
+    ) as stream:
+        for chunk in stream:
+            if chunk.type == "content_block_delta":
+                yield {"content": chunk.delta.text}
+            elif chunk.type == "thinking_delta":
+                yield {"thinking": chunk.delta.thinking}
+
+
+def _get_thinking_config(effort):
+    """Get thinking config based on effort level"""
+    configs = {
+        "quick": None,
+        "deep": {"type": "enabled", "budget_tokens": 8000},
+        "autonomous": {"type": "enabled", "budget_tokens": 15000},
+    }
+    return configs.get(effort)
 
 
 if __name__ == "__main__":

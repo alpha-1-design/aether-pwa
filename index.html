@@ -4744,12 +4744,17 @@
                 <div class="input-container">
                     <div class="input-wrapper">
                         <div class="input-toolbar">
-                            <button class="toolbar-btn" id="thinkModeBtn" title="Extended Thinking" aria-label="Toggle extended thinking mode">
+                            <button class="toolbar-btn" id="effortModeBtn" title="Set Thinking Effort" aria-label="Set thinking effort">
                                 <span class="icon icon-sm">
                                     <svg viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                                 </span>
-                                Think
+                                <span id="effortLabel">Deep</span>
                             </button>
+                            <select id="effortSelect" style="display:none;">
+                                <option value="quick">Quick</option>
+                                <option value="deep" selected>Deep</option>
+                                <option value="autonomous">Autonomous</option>
+                            </select>
                             <button class="toolbar-btn" id="searchModeBtn" title="Web Search" aria-label="Toggle web search mode">
                                 <span class="icon icon-sm">
                                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>

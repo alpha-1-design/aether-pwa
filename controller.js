@@ -37,6 +37,9 @@ class AppController {
       devToolsBtn: document.getElementById('devToolsBtn'),
       settingsBtn: document.getElementById('settingsBtn'),
       themeBtn: document.getElementById('themeBtn'),
+      effortModeBtn: document.getElementById('effortModeBtn'),
+      effortSelect: document.getElementById('effortSelect'),
+      effortLabel: document.getElementById('effortLabel'),
 
       // Other
       notificationBell: document.getElementById('notificationBell'),
@@ -54,6 +57,25 @@ class AppController {
   }
 
   setupEventListeners() {
+    // Effort Mode Toggle
+    if (this.elements.effortModeBtn && this.elements.effortSelect) {
+      this.elements.effortModeBtn.addEventListener('click', () => {
+        this.elements.effortSelect.style.display = 'inline-block';
+        this.elements.effortSelect.focus();
+      });
+      
+      this.elements.effortSelect.addEventListener('change', (e) => {
+        const effort = e.target.value;
+        this.elements.effortLabel.textContent = e.target.options[e.target.selectedIndex].text;
+        this.elements.effortSelect.style.display = 'none';
+        toast.info(`Effort mode: ${effort}`);
+      });
+      
+      this.elements.effortSelect.addEventListener('blur', () => {
+        this.elements.effortSelect.style.display = 'none';
+      });
+    }
+
     // Chat functionality
     if (this.elements.sendBtn) {
       this.elements.sendBtn.addEventListener('click', () => this.handleSendMessage());
@@ -403,7 +425,8 @@ class AppController {
       const isGhanaQuery = ghanaKeywords.some(kw => text.toLowerCase().includes(kw));
       
       // Get AI Response with Ghana focus if applicable
-      const chatOptions = { model };
+      const effort = this.elements.effortSelect?.value || 'deep';
+      const chatOptions = { model, effort, stream: effort === 'autonomous' };
       if (isGhanaQuery && aiService.getGhanaGlobalSystemPrompt) {
         const ghanaMessages = [
           { role: 'system', content: aiService.getGhanaGlobalSystemPrompt() },

@@ -778,7 +778,13 @@ export class AIService {
   }
 
   async proxyChat(messages, options = {}) {
-    const response = await fetch(`${this.baseUrl}/chat`, {
+    const endpoint = options.stream ? '/live' : '/chat';
+    
+    if (options.stream) {
+      return this.proxyStream(`${this.baseUrl}${endpoint}`, messages, options);
+    }
+    
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, ...options })
@@ -789,6 +795,20 @@ export class AIService {
     }
 
     return response.json();
+  }
+
+  async proxyStream(url, messages, options = {}) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, ...options })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stream failed: ${response.statusText}`);
+    }
+
+    return this.parseStream(response);
   }
 
   async callProvider(provider, endpoint, data, options = {}) {
