@@ -370,8 +370,7 @@ class AppController {
   }
 
   setupInitialState() {
-    // Use environment variable if available, otherwise fallback to the correct Render URL
-    this.baseUrl = import.meta.env?.VITE_API_URL || 'https://aether-pwa.onrender.com/api';
+    this.baseUrl = import.meta.env?.VITE_API_URL || '';
     aiService.baseUrl = this.baseUrl;
 
     // Load conversations
