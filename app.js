@@ -1750,7 +1750,7 @@ export const artifacts = new ArtifactSystem();
 export class TemplatesEngine {
   constructor() {
     this.storage = new ExpirableStorage('template_');
-    this.categories = ['coding', 'writing', 'analysis', 'research', 'creative'];
+    this.categories = ['coding', 'writing', 'analysis', 'research', 'creative', 'ghana', 'startup'];
     this.defaultTemplates = this.getDefaults();
     this.init();
   }

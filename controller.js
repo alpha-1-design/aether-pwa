@@ -5,12 +5,10 @@
 
 import { aiService, conversations, memory, templates, artifacts, codeExecutor } from './app.js';
 import { toast, modal, theme, notifications, network } from './app.js';
-import { Scene3D } from './scene3d.js';
 
 class AppController {
   constructor() {
     this.elements = {};
-    this.scene3D = null;
     this.init();
   }
 
@@ -39,15 +37,6 @@ class AppController {
       devToolsBtn: document.getElementById('devToolsBtn'),
       settingsBtn: document.getElementById('settingsBtn'),
       themeBtn: document.getElementById('themeBtn'),
-
-      // 3D Mode Elements
-      mode3DContainer: document.getElementById('mode3d'),
-      mode3DCanvas: document.getElementById('mode3d-canvas'),
-      mode3DInput: document.getElementById('mode3d-input'),
-      mode3DSend: document.getElementById('mode3d-send'),
-      mode3DClose: document.getElementById('mode3d-close'),
-      mode3DTabs: document.querySelectorAll('.mode-3d-tab'),
-      mode3DContents: document.querySelectorAll('.mode-3d-content'),
 
       // Other
       notificationBell: document.getElementById('notificationBell'),
@@ -185,13 +174,6 @@ class AppController {
     }
 
     // Insert buttons logic
-    if (this.elements.insert3DBtn) {
-      this.elements.insert3DBtn.addEventListener('click', () => {
-        toast.info('Entering 3D Synthesis Mode...');
-        this.enterMode3D();
-      });
-    }
-
     if (this.elements.insertDiagramBtn) {
       this.elements.insertDiagramBtn.addEventListener('click', () => {
         toast.info('Diagram Mode Activated');
@@ -246,79 +228,6 @@ class AppController {
         }, 100);
       });
     }
-
-    if (this.elements.mode3DSend) {
-      this.elements.mode3DSend.addEventListener('click', () => this.handleMode3DMessage());
-    }
-
-    if (this.elements.mode3DInput) {
-      this.elements.mode3DInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') this.handleMode3DMessage();
-      });
-    }
-
-    this.elements.mode3DTabs.forEach(tab => {
-      tab.addEventListener('click', () => this.switchMode3DTab(tab.dataset.tab));
-    });
-  }
-
-  async handleMode3DMessage() {
-    const text = this.elements.mode3DInput.value.trim();
-    if (!text) return;
-
-    this.elements.mode3DInput.value = '';
-
-    try {
-      // Lazy init 3D Scene
-      if (!this.scene3D) {
-        this.scene3D = new Scene3D('mode3d-canvas');
-      }
-
-      const response = await aiService.chat([
-        { role: 'system', content: 'You are a 3D Scene Architect. Respond ONLY with a raw JSON string representing the object: { "type": "cube|sphere|torus|pyramid|cylinder|ring|icosahedron", "position": [x,y,z], "color": "hex" }' },
-        { role: 'user', content: text }
-      ]);
-
-      this.appendMode3DMessage('user', text);
-
-      // Attempt to synthesize the object in 3D space
-      await this.scene3D.synthesizeObject(response.content);
-
-      this.appendMode3DMessage('assistant', `Object synthesized: ${response.content}`);
-      toast.success('Object materialized in 3D space');
-    } catch (e) {
-      console.error('3D synthesis error:', e);
-      this.appendMode3DMessage('assistant', `Error: ${e.message}`);
-      toast.error('3D Synthesis failed');
-    }
-  }
-
-  switchMode3DTab(tabId) {
-    this.elements.mode3DTabs.forEach(t => t.classList.remove('active'));
-    this.elements.mode3DContents.forEach(c => c.style.display = 'none');
-
-    const activeTab = Array.from(this.elements.mode3DTabs).find(t => t.dataset.tab === tabId);
-    if (activeTab) activeTab.classList.add('active');
-
-    const activeContent = document.getElementById(`mode3d-${tabId}`);
-    if (activeContent) activeContent.style.display = 'block';
-  }
-
-  enterMode3D() {
-    if (this.elements.mode3DContainer) {
-      this.elements.mode3DContainer.style.display = 'block';
-      toast.info('3D Space Initialized');
-    }
-  }
-
-  appendMode3DMessage(role, content) {
-    const container = document.getElementById('mode3d-messages');
-    if (!container) return;
-    const div = document.createElement('div');
-    div.className = `mode-3d-message ${role}`;
-    div.textContent = content;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
   }
 
   setupInitialState() {
