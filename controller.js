@@ -370,7 +370,7 @@ class AppController {
   }
 
   setupInitialState() {
-    this.baseUrl = import.meta.env?.VITE_API_URL || '';
+    this.baseUrl = import.meta.env?.VITE_API_URL || 'https://aether-pwa.onrender.com/api';
     aiService.baseUrl = this.baseUrl;
 
     // Load conversations

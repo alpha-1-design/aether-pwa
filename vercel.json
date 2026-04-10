@@ -5,6 +5,6 @@
   "installCommand": null,
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://aether-pwa.onrender.com/api/$1" }
   ]
 }
