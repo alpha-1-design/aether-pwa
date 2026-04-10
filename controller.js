@@ -228,6 +228,123 @@ class AppController {
         }, 100);
       });
     }
+
+    // Templates Modal
+    if (document.getElementById('templatesBtn')) {
+      document.getElementById('templatesBtn').addEventListener('click', () => {
+        this.openTemplatesModal();
+      });
+    }
+
+    if (document.getElementById('closeTemplates')) {
+      document.getElementById('closeTemplates').addEventListener('click', () => {
+        modal.close();
+      });
+    }
+
+    document.querySelectorAll('[data-template-tab]').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        document.querySelectorAll('[data-template-tab]').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        this.filterTemplates(e.target.dataset.templateTab);
+      });
+    });
+  }
+
+  openTemplatesModal() {
+    const allTemplates = templates.getAll();
+    const categories = ['all', 'code', 'writing', 'creative', 'ghana', 'startup', 'analysis', 'research'];
+    
+    // Update category tabs
+    const tabsContainer = document.querySelector('#templatesModal .modal-body > div');
+    if (tabsContainer) {
+      tabsContainer.innerHTML = categories.map(cat => 
+        `<button class="sidebar-tab ${cat === 'all' ? 'active' : ''}" data-template-tab="${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</button>`
+      ).join('');
+    }
+
+    // Render all templates
+    this.renderTemplates(allTemplates);
+
+    modal.open('Prompt Templates', `
+      <div style="margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+        ${categories.map(cat => 
+          `<button class="sidebar-tab ${cat === 'all' ? 'active' : ''}" data-template-tab="${cat}">${cat.charAt(0).toUpperCase() + cat.slice(1)}</button>`
+        ).join('')}
+      </div>
+      <div class="templates-grid" id="templatesGrid">
+        ${this.renderTemplateCards(allTemplates)}
+      </div>
+    `, { width: 900 });
+  }
+
+  renderTemplateCards(templateList) {
+    return templateList.map(t => `
+      <div class="template-card" data-template-id="${t.id}">
+        <span class="icon icon-lg"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <h4>${t.name}</h4>
+        <p>${t.prompt.substring(0, 80)}...</p>
+      </div>
+    `).join('');
+  }
+
+  filterTemplates(category) {
+    const allTemplates = templates.getAll();
+    const filtered = category === 'all' ? allTemplates : allTemplates.filter(t => t.category === category);
+    const grid = document.getElementById('templatesGrid');
+    if (grid) {
+      grid.innerHTML = this.renderTemplateCards(filtered);
+      this.bindTemplateCards();
+    }
+  }
+
+  bindTemplateCards() {
+    document.querySelectorAll('.template-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const templateId = card.dataset.templateId;
+        const template = templates.get(templateId);
+        if (template) {
+          modal.close();
+          this.useTemplate(template);
+        }
+      });
+    });
+  }
+
+  useTemplate(template) {
+    const { prompt, missing } = templates.render(template);
+    
+    if (missing.length === 0) {
+      this.elements.messageInput.value = prompt;
+      this.elements.messageInput.focus();
+    } else {
+      // Show variable input modal
+      modal.open('Fill Template Variables', `
+        <div class="template-variables">
+          ${missing.map(varName => `
+            <div class="form-group">
+              <label>${varName}</label>
+              <input type="text" id="var-${varName}" placeholder="Enter ${varName}...">
+            </div>
+          `).join('')}
+          <button id="use-template-btn" class="primary-btn">Use Template</button>
+        </div>
+      `);
+
+      setTimeout(() => {
+        document.getElementById('use-template-btn')?.addEventListener('click', () => {
+          const variables = {};
+          missing.forEach(v => {
+            const input = document.getElementById(`var-${v}`);
+            if (input) variables[v] = input.value;
+          });
+          const { prompt: finalPrompt } = templates.render(template, variables);
+          modal.close();
+          this.elements.messageInput.value = finalPrompt;
+          this.elements.messageInput.focus();
+        });
+      }, 100);
+    }
   }
 
   setupInitialState() {
@@ -281,11 +398,24 @@ class AppController {
 
       conversations.addMessage(conv.id, { role: 'user', content: text });
 
-      // Get AI Response
-      const response = await aiService.chat(
-        conversations.get(conv.id).messages,
-        { model }
-      );
+      // Check if this is a Ghana-related query
+      const ghanaKeywords = ['ghana', 'ghanaian', 'accra', 'mest', 'lagos', 'afcfta', 'momo', 'mobile money', 'diaspora', 'export', 'invest', 'tender', 'grant', 'startup', 'africa'];
+      const isGhanaQuery = ghanaKeywords.some(kw => text.toLowerCase().includes(kw));
+      
+      // Get AI Response with Ghana focus if applicable
+      const chatOptions = { model };
+      if (isGhanaQuery && aiService.getGhanaGlobalSystemPrompt) {
+        const ghanaMessages = [
+          { role: 'system', content: aiService.getGhanaGlobalSystemPrompt() },
+          ...conversations.get(conv.id).messages
+        ];
+        const response = await aiService.proxyChat(ghanaMessages, chatOptions);
+      } else {
+        const response = await aiService.chat(
+          conversations.get(conv.id).messages,
+          chatOptions
+        );
+      }
 
       // Handle Thinking and Content
       let finalContent = response.content;
