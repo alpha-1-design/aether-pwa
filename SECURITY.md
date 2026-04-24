@@ -17,7 +17,7 @@ If you discover a security vulnerability, please report it responsibly.
 ### How to Report
 
 1. **DO NOT** create a public GitHub issue
-2. **Email**: security@aether.example.com
+2. **Email**: alphariansamuel@gmail.com
 3. **Include**:
    - Description of the vulnerability
    - Steps to reproduce

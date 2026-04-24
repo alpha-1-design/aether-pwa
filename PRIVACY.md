@@ -96,7 +96,7 @@ We may update this policy periodically. We will notify you of any material chang
 ## Contact Us
 
 If you have questions about this Privacy Policy, contact us:
-- **Email**: privacy@aether.example.com
+- **Email**: alphariansamuel@gmail.com
 - **GitHub**: https://github.com/yourusername/aether-pwa/issues
 
 ---
