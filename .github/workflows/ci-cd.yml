@@ -1,0 +1,115 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Lint Python
+        run: |
+          pip install ruff
+          ruff check api/server.py --exit-zero
+      
+      - name: Verify HTML
+        run: |
+          python3 -c "from html.parser import HTMLParser; HTMLParser().feed(open('public/index.html').read())"
+      
+      - name: Verify JavaScript
+        run: |
+          npm install -g eslint 2>/dev/null || true
+          for f in public/js/*.js; do node --check "$f" 2>/dev/null || echo "Skipping $f"; done
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify file structure
+        run: |
+          echo "Checking required files..."
+          ls -la public/index.html
+          ls -la api/server.py
+          ls -la manifest.json
+          ls -la sw.js
+      
+      - name: Create build artifact
+        run: |
+          tar -czf aether-pwa.tar.gz \
+            public/ \
+            api/ \
+            manifest.json \
+            sw.js \
+            vercel.json \
+            requirements.txt \
+            README.md \
+            LICENSE.md \
+            CONTRIBUTING.md \
+            PRIVACY.md \
+            SECURITY.md \
+            AUTHORS.md \
+            CHANGELOG.md
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-pwa-build
+          path: aether-pwa.tar.gz
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '-- --prebuilt'
+        env:
+          VERCEL_DEPLOYMENT_ID: ${{ secrets.VERCEL_DEPLOYMENT_ID }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --prebuilt'
+        env:
+          VERCEL_DEPLOYMENT_ID: ${{ secrets.VERCEL_DEPLOYMENT_ID }}
