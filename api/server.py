@@ -7,12 +7,23 @@ from flask_cors import CORS
 from functools import wraps
 from duckduckgo_search import DDGS
 
+# Import SocketIO components
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from engineio.async_drivers import threading # Often needed for SocketIO run
+
 app = Flask(__name__)
+# CORS is already configured for Flask app
 CORS(app)
+
+# Initialize Flask-SocketIO. It needs to wrap the Flask app.
+# 'cors_allowed_origins' is important for development, adjust for production.
+# For now, allow all origins for simplicity, but this should be restricted in production.
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading') 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- Existing Provider Configurations (LLMs, Models, Headers) ---
 PROVIDER_ENDPOINTS = {
     "openrouter": "https://openrouter.ai/api/v1/chat/completions",
     "groq": "https://api.groq.com/openai/v1/chat/completions",
@@ -53,6 +64,7 @@ FREE_MODELS = {
     "anthropic": ["claude-3-haiku-20240307"]
 }
 
+# --- Error Handling Decorator ---
 def handle_errors(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -83,6 +95,7 @@ def handle_errors(f):
             return jsonify({"error": "An unexpected error occurred", "code": "INTERNAL_ERROR"}), 500
     return decorated
 
+# --- Helper Functions for LLM Calls ---
 def extract_tokens(provider, data):
     usage = {}
     if provider == "anthropic":
@@ -116,6 +129,7 @@ def transform_response(provider, data):
         return {"choices": [{"message": {"content": text}}]}
     return data
 
+# --- Flask Routes ---
 @app.route("/api/chat", methods=["POST"])
 @handle_errors
 def chat():
@@ -213,9 +227,9 @@ def health():
         "providers": list(PROVIDER_ENDPOINTS.keys())
     })
 
-# --- File Upload Endpoint ---
+# --- File Upload Endpoint (Server-side save - needs re-evaluation for Vercel) ---
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'} # Basic allowed file types
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'} 
 
 # Ensure upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
@@ -231,7 +245,7 @@ def upload_file():
     if 'files' not in request.files:
         raise ValueError("No file part in the request")
     
-    files = request.files.getlist('files') # Get multiple files if sent
+    files = request.files.getlist('files') 
     
     if not files or all(f.filename == '' for f in files):
         raise ValueError("No selected files")
@@ -240,8 +254,7 @@ def upload_file():
     for file in files:
         if file and allowed_file(file.filename):
             filename = file.filename
-            # Sanitize filename to prevent directory traversal attacks
-            filename = os.path.basename(filename) 
+            filename = os.path.basename(filename) # Sanitize filename
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             
             try:
@@ -253,13 +266,78 @@ def upload_file():
                 raise ValueError(f"Could not save file {filename}")
         else:
             logger.warning(f"File type not allowed: {file.filename}")
-            # Optionally raise an error for disallowed file types
-            # raise ValueError(f"File type not allowed: {file.filename}")
 
     if not uploaded_filenames:
         raise ValueError("No valid files were uploaded.")
 
     return jsonify({"message": "Files uploaded successfully", "filenames": uploaded_filenames}), 200
 
+# --- WebSocket Setup ---
+# Initialize SocketIO with the Flask app
+# async_mode='threading' is suitable for development with Flask's built-in server.
+# For production, consider a production-ready ASGI server like uvicorn/gunicorn with workers.
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading') 
+
+# Define SocketIO event handlers
+@socketio.on('connect')
+def handle_connect():
+    """Handles client connection."""
+    print(f"Client connected: {request.sid}")
+    emit('message', {'data': 'Connected to server'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handles client disconnection."""
+    print(f"Client disconnected: {request.sid}")
+
+@socketio.on('join_session')
+def on_join_session(data):
+    """Handles a client joining a specific session room."""
+    session_id = data.get('session_id')
+    is_host = data.get('is_host', False) # New: indicate if client is host
+    if session_id:
+        join_room(session_id)
+        print(f"Client {request.sid} joined session: {session_id} (Host: {is_host})")
+        # Emit a message to the room that a new client joined
+        emit('message', {'data': f'Client {request.sid} joined session {session_id}'}, room=session_id)
+        # Update connected device list for all in room
+        emit('connected_devices_update', {'devices': [sid for sid in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
+    else:
+        print("Join session failed: Missing session_id")
+        emit('error', {'message': 'Missing session_id'})
+
+@socketio.on('leave_session')
+def on_leave_session(data):
+    """Handles a client leaving a session room."""
+    session_id = data.get('session_id')
+    if session_id:
+        leave_room(session_id)
+        print(f"Client {request.sid} left session: {session_id}")
+        emit('message', {'data': f'Client {request.sid} left session {session_id}'}, room=session_id)
+        # Update connected device list for all in room
+        emit('connected_devices_update', {'devices': [sid for sid in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
+    else:
+        print("Leave session failed: Missing session_id")
+        emit('error', {'message': 'Missing session_id'})
+
+@socketio.on('send_sync_message')
+def on_send_sync_message(data):
+    """Broadcasts a message to all clients in a session."""
+    session_id = data.get('session_id')
+    message_data = data.get('message')
+    if session_id and message_data:
+        print(f"Broadcasting message to session {session_id}: {message_data}")
+        # Only broadcast to others in the room, not the sender
+        emit('receive_sync_message', {'message': message_data}, room=session_id, skip_sid=request.sid) 
+    else:
+        print("Send sync message failed: Missing session_id or message data")
+        emit('error', {'message': 'Missing session_id or message data'})
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Remove socketio.run for production deployment with Gunicorn
+    # For development, you can use:
+    # port = int(os.environ.get("PORT", 5000))
+    # print(f"Starting server on port {port} with WebSocket support...")
+    # socketio.run(app, host="0.0.0.0", port=port)
+    pass # Gunicorn will run 'app' directly
