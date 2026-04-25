@@ -335,9 +335,6 @@ def on_send_sync_message(data):
 
 
 if __name__ == "__main__":
-    # Remove socketio.run for production deployment with Gunicorn
-    # For development, you can use:
-    # port = int(os.environ.get("PORT", 5000))
-    # print(f"Starting server on port {port} with WebSocket support...")
-    # socketio.run(app, host="0.0.0.0", port=port)
-    pass # Gunicorn will run 'app' directly
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting server on port {port} with WebSocket support...")
+    socketio.run(app, host="0.0.0.0", port=port)

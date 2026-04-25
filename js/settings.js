@@ -1,7 +1,6 @@
-// js/settings.js (Updated for Sync Integration)
+// js/settings.js
 
-import { sendSyncMessage } from './sync.js'; // Import sendSyncMessage
-import { loadChatOptions } from './chat.js'; // For potentially reloading models/agents if settings affect them
+import { loadChatOptions } from './chat.js';
 
 // --- DOM Elements for API Key section in settings ---
 const apiProviderSelect = document.getElementById('apiProviderSelect');
@@ -23,7 +22,6 @@ export function saveApiKey(provider) {
     localStorage.setItem(storageKey, key);
     console.log(`API key for ${provider} saved.`);
     alert(`API key for ${provider} saved successfully!`);
-    sendSyncMessage('settings_update', { type: 'api_key_saved', provider: provider }); // Sync settings update
     updateSavedKeysDisplay(); 
     apiKeyInput.value = ''; 
     loadChatOptions(); // Refresh chat options in case new API key enables new models
@@ -39,7 +37,6 @@ export function removeApiKey(provider) {
     localStorage.removeItem(storageKey);
     console.log(`API key for ${provider} removed.`);
     alert(`API key for ${provider} removed.`);
-    sendSyncMessage('settings_update', { type: 'api_key_removed', provider: provider }); // Sync settings update
     updateSavedKeysDisplay(); 
     loadChatOptions(); // Refresh chat options
 }
@@ -101,12 +98,10 @@ export function initializeSettingsUI() {
             else if (provider === 'google') window.open('https://makersuite.google.com/app/apikey', '_blank');
             else if (provider === 'openai') window.open('https://platform.openai.com/account/api-keys', '_blank');
             else if (provider === 'anthropic') window.open('https://console.anthropic.com/keys', '_blank');
-            else alert('Please visit the provider's website to obtain an API key.');
+            else alert("Please visit the provider's website to obtain an API key.");
         });
     }
 
     // Initial display of saved keys when settings are loaded
     updateSavedKeysDisplay();
 }
-// Export updateSavedKeysDisplay for sync.js to refresh settings
-export { updateSavedKeysDisplay };

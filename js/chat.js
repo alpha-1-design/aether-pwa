@@ -22,8 +22,7 @@ function displayMessage(role, content, synced = false) { // Added 'synced' param
     if (synced) {
         messageElement.classList.add('synced-message');
     }
-    const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/
-/g, '<br>');
+    const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
     messageElement.innerHTML = safeContent;
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -270,5 +269,5 @@ if (personaSelect) {
     });
 }
 
-// Export displayMessage so other modules (like sync.js) can use it
-export { displayMessage, loadChatOptions }; 
+// Export displayMessage so other modules can use it
+export { displayMessage }; 
