@@ -30,12 +30,11 @@ jobs:
       
       - name: Verify HTML
         run: |
-          python3 -c "from html.parser import HTMLParser; HTMLParser().feed(open('public/index.html').read())"
+          python3 -c "from html.parser import HTMLParser; HTMLParser().feed(open('index.html').read())"
       
       - name: Verify JavaScript
         run: |
-          npm install -g eslint 2>/dev/null || true
-          for f in public/js/*.js; do node --check "$f" 2>/dev/null || echo "Skipping $f"; done
+          for f in js/*.js; do node --check "$f" 2>/dev/null || echo "Skipping $f"; done
 
   build:
     runs-on: ubuntu-latest
@@ -48,18 +47,19 @@ jobs:
       - name: Verify file structure
         run: |
           echo "Checking required files..."
-          ls -la public/index.html
+          ls -la index.html
+          ls -la js/
+          ls -la styles/
           ls -la api/server.py
-          ls -la manifest.json
-          ls -la sw.js
+          ls -la vercel.json
       
       - name: Create build artifact
         run: |
           tar -czf aether-pwa.tar.gz \
-            public/ \
+            index.html \
+            js/ \
+            styles/ \
             api/ \
-            manifest.json \
-            sw.js \
             vercel.json \
             requirements.txt \
             README.md \
@@ -68,7 +68,8 @@ jobs:
             PRIVACY.md \
             SECURITY.md \
             AUTHORS.md \
-            CHANGELOG.md
+            CHANGELOG.md \
+            CODE_OF_CONDUCT.md
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -91,7 +92,7 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '-- --prebuilt'
+          vercel-args: '--prebuilt'
         env:
           VERCEL_DEPLOYMENT_ID: ${{ secrets.VERCEL_DEPLOYMENT_ID }}
 

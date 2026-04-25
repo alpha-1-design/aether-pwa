@@ -1,0 +1,31 @@
+/* Theme system for Aether PWA */
+:root {
+    --color-background: #0a0a0f;
+    --color-text: #e2e8f0;
+    --color-primary: #6366f1;
+    --color-secondary: #818cf8;
+    --color-border: #334155;
+    --color-header-bg: #1e293b;
+    --color-disabled: #475569;
+}
+/* Light theme */
+body.light {
+    --color-background: #ffffff;
+    --color-text: #1e293b;
+    --color-primary: #4f46e5;
+    --color-secondary: #6366f1;
+    --color-border: #cbd5e1;
+    --color-header-bg: #f8fafc;
+    --color-disabled: #94a3b8;
+}
+/* Glass theme */
+body.glass {
+    --color-background: rgba(10, 10, 15, 0.8);
+    --color-text: #e2e8f0;
+    --color-primary: rgba(99, 102, 241, 0.8);
+    --color-secondary: rgba(129, 140, 248, 0.8);
+    --color-border: rgba(51, 65, 85, 0.5);
+    --color-header-bg: rgba(30, 41, 59, 0.8);
+    --color-disabled: rgba(71, 85, 105, 0.5);
+    backdrop-filter: blur(10px);
+}

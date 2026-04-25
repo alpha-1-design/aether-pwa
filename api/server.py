@@ -5,6 +5,7 @@ import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from functools import wraps
+from duckduckgo_search import DDGS
 
 app = Flask(__name__)
 CORS(app)
@@ -92,7 +93,7 @@ def extract_tokens(provider, data):
                 "completion_tokens": data.get("usage", {}).get("completion_tokens", 0),
                 "total_tokens": data.get("usage", {}).get("total_tokens", 0)}
     if usage:
-        usage["total"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0) or \
+        usage["total"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0) or 
                    usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
     return usage
 
@@ -211,6 +212,54 @@ def health():
         "version": "reborn-1.0.0",
         "providers": list(PROVIDER_ENDPOINTS.keys())
     })
+
+# --- File Upload Endpoint ---
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'} # Basic allowed file types
+
+# Ensure upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and 
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route("/api/upload", methods=["POST"])
+@handle_errors
+def upload_file():
+    if 'files' not in request.files:
+        raise ValueError("No file part in the request")
+    
+    files = request.files.getlist('files') # Get multiple files if sent
+    
+    if not files or all(f.filename == '' for f in files):
+        raise ValueError("No selected files")
+
+    uploaded_filenames = []
+    for file in files:
+        if file and allowed_file(file.filename):
+            filename = file.filename
+            # Sanitize filename to prevent directory traversal attacks
+            filename = os.path.basename(filename) 
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            try:
+                file.save(filepath)
+                uploaded_filenames.append(filename)
+                logger.info(f"File uploaded successfully: {filename} to {filepath}")
+            except Exception as e:
+                logger.error(f"Error saving file {filename}: {e}")
+                raise ValueError(f"Could not save file {filename}")
+        else:
+            logger.warning(f"File type not allowed: {file.filename}")
+            # Optionally raise an error for disallowed file types
+            # raise ValueError(f"File type not allowed: {file.filename}")
+
+    if not uploaded_filenames:
+        raise ValueError("No valid files were uploaded.")
+
+    return jsonify({"message": "Files uploaded successfully", "filenames": uploaded_filenames}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
