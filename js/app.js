@@ -2,28 +2,6 @@
 import { initializeSettingsUI } from './settings.js';
 import { initializeChatUI } from './chat.js';
 
-function initializeNavigation() {
-  const navBtns = document.querySelectorAll('.nav-btn');
-  const views = document.querySelectorAll('.view');
-
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetView = btn.dataset.view;
-
-      navBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      views.forEach(view => {
-        if (view.id === `${targetView}View`) {
-          view.classList.add('active');
-        } else {
-          view.classList.remove('active');
-        }
-      });
-    });
-  });
-}
-
 // History & Session Management
 function initializeHistory() {
   const historyBtn = document.getElementById('historyBtn');
@@ -148,14 +126,14 @@ function initializeApp() {
 function initializeNavigation() {
   const navBtns = document.querySelectorAll('.nav-btn');
   const views = document.querySelectorAll('.view');
-  
+
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetView = btn.dataset.view;
-      
+
       navBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      
+
       views.forEach(view => {
         if (view.id === `${targetView}View`) {
           view.classList.add('active');
