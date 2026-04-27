@@ -2,7 +2,7 @@
 
 import { sendMessageToAI, streamMessageToAI, getAvailableModels, FREE_MODELS } from './api.js';
 import { getApiKey } from './settings.js';
-import { getAllAgents, getAgent } from './store.js';
+import { getAllAgents, getAgent as getAgentById } from './store.js';
 import { processSearchCommand } from './search.js';
 import { sendSyncMessage } from './sync.js';
 import { socket } from './sync.js';
@@ -112,7 +112,7 @@ async function handleSendMessage() {
     if (selectedValue.startsWith('agent_')) {
         const agentId = selectedValue.split('_')[1];
         try {
-            const agent = await getAgent(agentId);
+            const agent = await getAgentById(agentId);
             if (agent) {
                 let agentContext = agent.prompt;
                 if (agent.knowledge) agentContext += `\n\nKnowledge:\n${agent.knowledge}`;
