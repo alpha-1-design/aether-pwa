@@ -29,7 +29,6 @@ window.memoryManager = memoryManager;
 let availableModels = null;
 let abortController = null;
 
-let availableModels = null;
 
 function getBackendUrl() {
     const envUrl = import.meta.env.VITE_BACKEND_URL;
