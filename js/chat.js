@@ -172,31 +172,32 @@ async function handleSendMessage() {
         const streamResult = await sendMessageToAI(messageText, provider, model, messagesToSend, apiKey);
 
         if (streamResult && streamResult.stream) {
-            for await (const chunk of streamResult.stream()) {
-                if (chunk) {
-                    // MEMORY TRIGGER: Check if the AI is explicitly remembering something
-                    const rememberMatch = chunk.match(/\[REMEMBER: (.+?)\]/);
+            let chunkText = '';
+            for await (const chunkItem of streamResult.stream()) {
+                if (chunkItem) {
+                    chunkText = chunkItem;
+                    const rememberMatch = chunkText.match(/\[REMEMBER: (.+?)\]/);
                     if (rememberMatch) {
                         memoryManager.remember(rememberMatch[1]);
-                        chunk = chunk.replace(/\[REMEMBER: .+?\]/, '');
+                        chunkText = chunkText.replace(/\[REMEMBER: .+?\]/, '');
                     }
 
-                    const taskAddMatch = chunk.match(/\[TASK: (.+?)\]/);
+                    const taskAddMatch = chunkText.match(/\[TASK: (.+?)\]/);
                     if (taskAddMatch) {
                         taskManager.addTask(taskAddMatch[1]);
-                        chunk = chunk.replace(/\[TASK: .+?\]/, '');
+                        chunkText = chunkText.replace(/\[TASK: .+?\]/, '');
                     }
-                    const taskDoneMatch = chunk.match(/\[TASK_DONE: (\d+)\]/);
+                    const taskDoneMatch = chunkText.match(/\[TASK_DONE: (\d+)\]/);
                     if (taskDoneMatch) {
                         taskManager.updateTaskStatus(taskDoneMatch[1], 'completed');
-                        chunk = chunk.replace(/\[TASK_DONE: \d+\]/, '');
+                        chunkText = chunkText.replace(/\[TASK_DONE: \d+\]/, '');
                     }
-                    const taskProgressMatch = chunk.match(/\[TASK_START: (\d+)\]/);
+                    const taskProgressMatch = chunkText.match(/\[TASK_START: (\d+)\]/);
                     if (taskProgressMatch) {
                         taskManager.updateTaskStatus(taskProgressMatch[1], 'in_progress');
-                        chunk = chunk.replace(/\[TASK_START: \d+\]/, '');
+                        chunkText = chunkText.replace(/\[TASK_START: \d+\]/, '');
                     }
-                    fullResponse += chunk;
+                    fullResponse += chunkText;
                 }
             }
         } else if (streamResult && streamResult.error) {

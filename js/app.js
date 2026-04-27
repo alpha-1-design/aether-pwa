@@ -1,6 +1,7 @@
 // Aether PWA - Main App Initialization
 import { initializeSettingsUI } from './settings.js';
 import { initializeChatUI } from './chat.js';
+import { initializeAgentsUI } from './agents.js';
 
 // History & Session Management
 function initializeHistory() {
@@ -107,9 +108,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeInputHandlers();
   initializeSettingsSections();
   initializeTheme();
-  initializeAgents();
+  initializeMissingHandlers();
   initializeVoiceInput();
   initializeFileUpload();
+  initializeSettingsUI();
+  initializeAgentsUI();
   initializeChatUI();
   initializeHistory();
 
@@ -192,7 +195,7 @@ function initializeTheme() {
     soulColorPicker.addEventListener('input', (e) => {
       const color = e.target.value;
       updateSoulColor(color);
-      if (soulColorHex) soulColorHEx.textContent = color.toUpperCase();
+      if (soulColorHex) soulColorHex.textContent = color.toUpperCase();
       localStorage.setItem('aether-soul-color', color);
     });
   }
@@ -218,42 +221,112 @@ function initializeTheme() {
 
 function updateSoulColor(color) {
   document.documentElement.style.setProperty('--color-primary', color);
-  // Generate lighter/darker versions for hover/active
-  // For a truly professional feel, we'd use a library like chroma.js,
-  // but we can simulate it with simple CSS filter shifts or specific offsets
   document.documentElement.style.setProperty('--color-primary-hover', color);
   document.documentElement.style.setProperty('--color-primary-active', color);
 }
 
-function initializeAgents() {
-  const createAgentBtn = document.getElementById('createAgentBtn');
-  const emptyCreateAgentBtn = document.getElementById('emptyCreateAgentBtn');
-  const modalOverlay = document.getElementById('modalOverlay');
-  const saveAgentBtn = document.getElementById('saveAgentBtn');
-  
-  [createAgentBtn, emptyCreateAgentBtn].forEach(btn => {
-    if (btn) {
-      btn.addEventListener('click', openModal);
-    }
-  });
-  
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        closeModal();
+function initializeMissingHandlers() {
+  const searchBtn = document.getElementById('searchBtn');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', async () => {
+      const input = document.getElementById('messageInput');
+      if (input) {
+        const query = prompt('Enter search query:');
+        if (query) {
+          input.value = `/search ${query}`;
+          input.dispatchEvent(new Event('input'));
+        }
       }
     });
   }
-  
-  const modalCloseBtns = document.querySelectorAll('.modal-close, .modal-close-btn');
-  modalCloseBtns.forEach(btn => {
-    btn.addEventListener('click', closeModal);
-  });
-  
-  if (saveAgentBtn) {
-    saveAgentBtn.addEventListener('click', saveAgent);
+
+  const headerMenu = document.getElementById('headerMenu');
+  if (headerMenu) {
+    headerMenu.addEventListener('click', () => {
+      showToast('Menu coming soon', 'info');
+    });
+  }
+
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', async () => {
+      if (confirm('Clear all chat history? This cannot be undone.')) {
+        const { clearAllChats } = await import('./store.js');
+        await clearAllChats();
+        showToast('History cleared', 'success');
+      }
+    });
+  }
+
+  const exportMemoryBtn = document.getElementById('exportMemoryBtn');
+  if (exportMemoryBtn) {
+    exportMemoryBtn.addEventListener('click', async () => {
+      const { exportData } = await import('./store.js');
+      const data = await exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'aether-memory.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Memory exported', 'success');
+    });
+  }
+
+  const importMemoryBtn = document.getElementById('importMemoryBtn');
+  const importFileInput = document.getElementById('importFileInput');
+  if (importMemoryBtn && importFileInput) {
+    importMemoryBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const { importData } = await import('./store.js');
+        await importData(data);
+        showToast('Memory imported', 'success');
+      } catch (err) {
+        showToast('Failed to import: ' + err.message, 'error');
+      }
+      importFileInput.value = '';
+    });
+  }
+
+  const showQrBtn = document.getElementById('showQrBtn');
+  if (showQrBtn) {
+    showQrBtn.addEventListener('click', async () => {
+      const { generateQRCode, hostSession } = await import('./sync.js');
+      await hostSession();
+      const qrContainer = document.getElementById('qrContainer');
+      if (qrContainer) {
+        qrContainer.classList.remove('hidden');
+        qrContainer.innerHTML = '';
+        const qr = generateQRCode(window.location.href);
+        qrContainer.appendChild(qr);
+        showToast('QR Code generated', 'success');
+      }
+    });
+  }
+
+  const joinDeviceBtn = document.getElementById('joinDeviceBtn');
+  if (joinDeviceBtn) {
+    joinDeviceBtn.addEventListener('click', async () => {
+      const hostIpInput = document.getElementById('hostIpInput');
+      if (hostIpInput && hostIpInput.value) {
+        const { joinSession } = await import('./sync.js');
+        await joinSession(hostIpInput.value);
+        showToast('Connecting to device...', 'info');
+      } else {
+        showToast('Enter host IP address', 'error');
+      }
+    });
   }
 }
+
+// Removed - conflicts with agents.js initializeAgentsUI()
+// function initializeAgents() { ... }
 
 function initializeVoiceInput() {
   const voiceBtn = document.getElementById('voiceBtn');
@@ -379,100 +452,6 @@ function initializeDropZone() {
   });
 }
 
-async function saveAgent() {
-  const nameInput = document.getElementById('agentNameInput');
-  const promptInput = document.getElementById('agentPromptInput');
-  const knowledgeInput = document.getElementById('agentKnowledgeInput');
-  
-  if (!nameInput || !promptInput) return;
-  
-  const name = nameInput.value.trim();
-  const prompt = promptInput.value.trim();
-  const knowledge = knowledgeInput?.value.trim() || '';
-  
-  if (!name || !prompt) {
-    showToast('Name and prompt required', 'error');
-    return;
-  }
-  
-  try {
-    const { createAgent } = await import('./store.js');
-    await createAgent(name, prompt, knowledge);
-    
-    nameInput.value = '';
-    promptInput.value = '';
-    if (knowledgeInput) knowledgeInput.value = '';
-    closeModal();
-    showToast('Agent created!', 'success');
-    
-    loadAgentsList();
-  } catch (err) {
-    console.error('Failed to save agent:', err);
-    showToast('Failed to save agent', 'error');
-  }
-}
-
-async function loadAgentsList() {
-  const agentsList = document.getElementById('agentsList');
-  if (!agentsList) return;
-  
-  try {
-    const { getAllAgents, deleteAgent } = await import('./store.js');
-    const agents = await getAllAgents();
-    
-    if (agents.length === 0) {
-      agentsList.innerHTML = `
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          <h3>No agents yet</h3>
-          <p>Create a custom agent to chat with</p>
-          <button class="primary-btn" id="emptyCreateAgentBtn">Create Agent</button>
-        </div>
-      `;
-      document.getElementById('emptyCreateAgentBtn')?.addEventListener('click', openModal);
-    } else {
-      agentsList.innerHTML = agents.map(agent => `
-        <div class="agent-card" data-id="${agent.id}">
-          <div class="agent-avatar">${agent.name.charAt(0).toUpperCase()}</div>
-          <div class="agent-info">
-            <h3>${escapeHtml(agent.name)}</h3>
-            <p>${escapeHtml(agent.prompt.substring(0, 60))}...</p>
-          </div>
-          <button class="delete-agent-btn" data-id="${agent.id}">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
-          </button>
-        </div>
-      `).join('');
-      
-      agentsList.querySelectorAll('.delete-agent-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          if (confirm('Delete this agent?')) {
-            await deleteAgent(id);
-            showToast('Agent deleted', 'success');
-            loadAgentsList();
-          }
-        });
-      });
-    }
-  } catch (err) {
-    console.error('Failed to load agents:', err);
-  }
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 function openModal() {
   const modalOverlay = document.getElementById('modalOverlay');
   if (modalOverlay) {
@@ -509,13 +488,5 @@ function showToast(message, type = 'info') {
 }
 
 window.showToast = showToast;
-
-initializeSettingsUI();
-
-window.addEventListener('load', () => {
-  loadAgentsList();
-});
-
 window.openModal = openModal;
 window.closeModal = closeModal;
-window.loadAgentsList = loadAgentsList;

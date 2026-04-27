@@ -223,4 +223,4 @@ export async function importData(data) {
     }
 }
 
-export { generateId };
+export { generateId, createAgent, getAgent, updateAgent, deleteAgent, getAllAgents, saveChat, getChat, getAllChats, deleteChat, clearAllChats, exportData, importData };

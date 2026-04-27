@@ -103,19 +103,23 @@
                 </div>
                 <div class="typing-indicator hidden" id="typingIndicator">
                     <div class="typing-content">
-                        <div class="thinking-core loader">
-                            <svg width="100" height="100" viewBox="0 0 100 100">
+                        <div class="thinking-atom">
+                            <svg viewBox="0 0 60 60" width="32" height="32">
                                 <defs>
-                                    <mask id="clipping-mini">
-                                        <polygon points="0,0 100,0 100,100 0,100" fill="black"></polygon>
-                                        <polygon points="25,25 75,25 50,75" fill="white"></polygon>
-                                        <polygon points="50,25 75,75 25,75" fill="white"></polygon>
-                                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
-                                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
-                                    </mask>
+                                    <radialGradient id="thinkGrad" cx="30%" cy="30%" r="70%">
+                                        <stop offset="0%" stop-color="#fff"/>
+                                        <stop offset="50%" stop-color="#818cf8"/>
+                                        <stop offset="100%" stop-color="#6366f1"/>
+                                    </radialGradient>
                                 </defs>
+                                <ellipse cx="30" cy="30" rx="24" ry="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4" class="orbit orbit-1"/>
+                                <ellipse cx="30" cy="30" rx="24" ry="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3" class="orbit orbit-2" transform="rotate(60 30 30)"/>
+                                <ellipse cx="30" cy="30" rx="24" ry="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4" class="orbit orbit-3" transform="rotate(120 30 30)"/>
+                                <circle cx="48" cy="30" r="3" fill="url(#thinkGrad)" class="electron"/>
+                                <circle cx="18" cy="30" r="3" fill="url(#thinkGrad)" class="electron" transform="rotate(60 30 30)"/>
+                                <circle cx="30" cy="48" r="3" fill="url(#thinkGrad)" class="electron" transform="rotate(120 30 30)"/>
+                                <circle cx="30" cy="30" r="6" fill="url(#thinkGrad)"/>
                             </svg>
-                            <div class="box"></div>
                         </div>
                         <div class="typing-dots">
                             <span></span><span></span><span></span>
