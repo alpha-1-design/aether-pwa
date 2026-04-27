@@ -6,7 +6,7 @@ export default defineConfig({
 
   // Disable publicDir to prevent copying the entire project root into dist/.
   // Static assets like manifest.json should be handled by rollup or explicitly copied if needed.
-  publicDir: false, 
+  publicDir: 'icons', 
 
   plugins: [
     // No specific plugins needed for basic JS/CSS bundling with Vite

@@ -1,13 +1,10 @@
-# Aether AI - Unified AI Assistant Platform
+# Aether - AI Chat PWA
 
 <div align="center">
 
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-6b00ff?style=flat&logo=pwa)](https://web.dev/explore/progressive-web-apps)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
-[![Version](https://img.shields.io/badge/Version-1.0.0-success)](CHANGELOG.md)
-[![Platform](https://img.shields.io/badge/Platform-Web|iOS|Android|Desktop-purple)](https://vercel.com)
+**Aether** is a mobile-first PWA AI chat assistant with cross-device sync, custom agents, and 11+ LLM providers.
 
-A Gemini-style AI chat application with PWA support, 11+ LLM providers, custom agents, cross-device sync, and native app feel.
+[Features](#features) · [Quick Start](#quick-start) · [Backend Setup](#backend-setup) · [API](#api-endpoints)
 
 </div>
 
@@ -15,147 +12,223 @@ A Gemini-style AI chat application with PWA support, 11+ LLM providers, custom a
 
 ## Features
 
-### Core
-- **PWA Installable** - Feels like a native app on any device
-- **11+ LLM Providers** - OpenRouter, Groq, Cerebras, Google, OpenCode, HuggingFace, Cohere, GitHub, Cloudflare, Mistral, OpenAI, Anthropic
-- **Custom Agents** - Create AI agents with personalities saved to IndexedDB
-- **Code Execution** - Run code in 20+ languages via Piston API
-- **Web Search** - DuckDuckGo search (auto + manual)
-- **File Upload** - Images, PDFs supported
-- **Voice Input** - Web Speech API + voice memo recording
-- **Cross-Device Sync** - Host/Join via WebSocket on local network
+### What Each Feature Does
 
-### UI/UX
-- **Space Dark Theme** (default), Light, Glass themes
-- **Glassmorphism Design** - Professional SVG icons
-- **Atom Logo** - Rotating rings animation when AI is thinking
-- **3 Main Tabs** - Chat, Agents, Settings
+| Feature | How to Use | What Happens | If Backend Down |
+|---------|------------|--------------|-----------------|
+| **Send Message** | Type in input, tap Send or Enter | Message goes to selected LLM, response streams in | Falls back to direct API call from browser |
+| **Voice Input** | Tap mic button | Browser asks for mic, listens for speech, transcribes | Works offline (Web Speech API) |
+| **File Upload** | Tap attach → pick .txt/.md | File content appended to message | Works offline |
+| **Web Search** | Type `/search query` | Shows DuckDuckGo results in chat | Shows "Search Failed" error |
+| **Code Execution** | Toggle in Settings → send code | Code runs via Piston API, output shown | Shows "Execution unavailable" |
+| **Custom Agents** | Agents tab → Create Agent | Agent saved to IndexedDB, appears in dropdown | Works offline |
+| **Cross-Device Sync** | Settings → Host/Join | Messages sync via WebSocket | Shows "Not connected" |
+
+### UI Tabs
+
+| Tab | Purpose |
+|-----|---------|
+| **Chat** | Main conversation interface |
+| **Agents** | Create and manage custom AI agents |
+| **Settings** | API keys, themes, sync, data management |
 
 ### Settings Sections
-1. **API Keys** - Per-provider keys
-2. **Models** - Default model, streaming, auto-execute
-3. **Appearance** - Theme, font size
-4. **Voice & Input** - Speech-to-text, voice memo
-5. **Cross-Device** - Host/Join modes
-6. **Data & Storage** - Clear history, export/import
-7. **About** - Version info
+
+| Section | Options | What They Do |
+|---------|---------|--------------|
+| **API Keys** | 12 providers | Store API keys per provider |
+| **Models & Settings** | Default model, streaming, auto-execute | Configure LLM behavior |
+| **Appearance** | Space Dark / Light / Glass themes | Change UI look |
+| **Voice & Input** | Speech-to-text toggle, voice memo | Enable voice features |
+| **Cross-Device** | Off / Host / Join | Sync across devices |
+| **Data & Storage** | Clear history, export/import | Manage local data |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+ (for local development)
-- Python 3.9+ (for backend)
-- API keys from your preferred providers
-
-### Installation
+### Frontend Only (Works Immediately)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/aether-pwa.git
-cd aether-pwa
+# Open in browser
+npx serve .
 
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Or create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+# Or use any static server
+python -m http.server 8080
 ```
 
-### Development
+Features that work **without backend**:
+- Chat UI (needs API key in browser)
+- Voice input (Web Speech API)
+- File upload (.txt/.md)
+- Custom agents (IndexedDB)
+- Themes and appearance
+- Local storage
+
+### Backend Required For
+
+| Feature | Why | Fallback |
+|---------|-----|----------|
+| Web Search | DuckDuckGo API via `/api/search` | "Search Failed" message |
+| Code Execution | Piston API via `/api/execute` | Manual copy/paste |
+| Cross-Device Sync | Socket.IO WebSocket | Works on same device only |
+| Model List | `/api/models` endpoint | Hardcoded fallback list |
+
+---
+
+## Backend Setup
+
+### Local Development
 
 ```bash
-# Run Flask backend (development)
+# Install dependencies
+pip install -r requirements.txt
+
+# Run Flask server
 python api/server.py
+# Server runs on http://localhost:5000
 
 # Or with Flask CLI
 FLASK_APP=api/server.py flask run --host=0.0.0.0 --port=5000
 ```
 
-### Deployment (Vercel)
+### Backend Endpoints
 
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/chat` | POST | Send chat messages to LLM |
+| `/api/search?q=` | GET | Web search via DuckDuckGo |
+| `/api/models?provider=` | GET | Get available models |
+| `/api/execute` | POST | Execute code in sandbox |
+| `/api/health` | GET | Health check |
+
+### WebSocket Events
+
+| Event | Direction | Purpose |
+|-------|-----------|---------|
+| `join_session` | Client → Server | Join a sync session |
+| `leave_session` | Client → Server | Leave sync session |
+| `send_sync_message` | Client → Server | Broadcast message |
+| `receive_sync_message` | Server → Client | Receive synced message |
+| `connected_devices_update` | Server → Client | Device list changed |
+
+### Deploy Backend
+
+**Option 1: Render (Recommended)**
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy to Vercel
-vercel --prod
+# Create render.yaml or use Render dashboard
+# Runtime: Python 3.11
+# Build command: pip install -r requirements.txt
+# Start command: python api/server.py
 ```
 
-The frontend deploys as static files. For the backend:
-- Use Vercel Serverless Functions (Python runtime)
-- Or deploy separately to Render/Replit
-
----
-
-## Configuration
-
-### Vercel Configuration
-
-```json
-{
-  "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "public",
-  "framework": null,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api/server.py" }
-  ]
-}
+**Option 2: Railway**
+```bash
+# Connect GitHub repo
+# Set start command: python api/server.py
 ```
 
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | 5000 |
-| `FLASK_ENV` | Environment | development |
-| `OPENROUTER_API_KEY` | OpenRouter key | - |
-| `ANTHROPIC_API_KEY` | Anthropic key | - |
+**Option 3: Fly.io**
+```bash
+fly launch
+fly secrets set OPENROUTER_API_KEY=your-key
+fly deploy
+```
 
 ---
 
 ## API Endpoints
 
 ### POST /api/chat
-Chat with LLM providers.
 
-```bash
-curl -X POST https://yourdomain.com/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "openrouter",
-    "model": "deepseek/deepseek-chat",
-    "apiKey": "your-api-key",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
+```json
+{
+  "provider": "openrouter",
+  "model": "deepseek/deepseek-chat",
+  "apiKey": "sk-or-...",
+  "messages": [
+    {"role": "user", "content": "Hello"}
+  ],
+  "stream": true
+}
+```
+
+Response (streaming):
+```
+data: {"choices": [{"delta": {"content": "Hi"}}]}
+data: [DONE]
 ```
 
 ### GET /api/search?q=query
-Web search via DuckDuckGo.
 
-```bash
-curl "https://yourdomain.com/api/search?q=javascript+tutorial"
+Response:
+```json
+{
+  "results": [
+    {"title": "Result", "url": "https://...", "snippet": "Description"}
+  ],
+  "query": "query"
+}
 ```
 
-### GET /api/models?provider=openrouter
-Get available models for a provider.
+### POST /api/execute
 
-```bash
-curl "https://yourdomain.com/api/models?provider=openrouter"
+```json
+{
+  "language": "python",
+  "code": "print('Hello')",
+  "version": "*"
+}
 ```
 
-### GET /api/health
-Health check endpoint.
-
-```bash
-curl "https://yourdomain.com/api/health"
+Response:
+```json
+{
+  "run": {"stdout": "Hello\n", "stderr": "", "code": 0}
+}
 ```
+
+---
+
+## LLM Providers
+
+### Free Models (No API Key)
+
+| Provider | Models |
+|----------|--------|
+| **OpenRouter** | deepseek-chat, llama-3.3-70b, qwen3-30b-a3b, gemma-3-27b |
+| **Groq** | llama-3.3-70b, mixtral-8x7b, deepseek-r1 |
+| **Cerebras** | llama-3.3-70b |
+| **Google** | gemini-2.0-flash, gemini-1.5-flash |
+| **OpenCode Zen** | big-pickle, MiniMax-M2.5-Free, GLM-4.7-Free |
+
+### Requires API Key
+
+| Provider | Sign Up |
+|----------|---------|
+| OpenAI | platform.openai.com |
+| Anthropic | console.anthropic.com |
+| Mistral | mistral.ai |
+| Cohere | cohere.com |
+| HuggingFace | huggingface.co |
+| Cloudflare | cloudflare.com/ai |
+| GitHub | github.com/features/copilot |
+
+---
+
+## PWA Installation
+
+| Platform | How to Install |
+|----------|----------------|
+| **iOS** | Safari → Share → Add to Home Screen |
+| **Android** | Chrome → Menu → Install App |
+| **Desktop** | Chrome → Menu → Install Aether |
+
+PWA provides:
+- Offline capability (cached pages)
+- Home screen icon
+- Full-screen experience
+- Push notifications ready
 
 ---
 
@@ -163,163 +236,40 @@ curl "https://yourdomain.com/api/health"
 
 ```
 aether-pwa/
-├── public/                 # Static frontend files
-│   ├── index.html         # Main HTML
-│   ├── manifest.json     # PWA manifest
-│   ├── sw.js            # Service worker
-│   ├── js/              # JavaScript modules
-│   │   ├── app.js       # Main app
-│   │   ├── store.js     # IndexedDB wrapper
-│   │   ├── api.js      # LLM API integration
-│   │   ├── chat.js     # Chat UI
-│   │   ├── agents.js   # Custom agents
-│   │   ├── settings.js # Settings UI
-│   │   └── sync.js    # WebSocket sync
-│   └── styles/          # CSS files
-│       ├── main.css     # Core styles
-│       ├── theme.css   # Theme system
-│       └── anim.css    # Animations
-├── api/                 # Flask backend
-│   └── server.py       # API server
-├── vercel.json         # Vercel config
-├── requirements.txt   # Python deps
-├── README.md           # This file
-├── CONTRIBUTING.md     # Contribution guide
-├── PRIVACY.md          # Privacy policy
-├── LICENSE.md          # MIT License
-├── CHANGELOG.md       # Version history
-└── AUTHORS.md          # Contributors
+├── index.html          # Main app
+├── manifest.json       # PWA manifest
+├── sw.js              # Service worker
+├── js/
+│   ├── app.js        # Main initialization
+│   ├── chat.js       # Chat UI logic
+│   ├── api.js        # LLM API calls
+│   ├── store.js      # IndexedDB storage
+│   ├── search.js     # Web search
+│   ├── sync.js       # Cross-device WebSocket
+│   └── settings.js   # Settings UI
+├── api/
+│   └── server.py     # Flask backend
+├── styles/
+│   ├── main.css      # Core styles
+│   ├── theme.css     # Theme variants
+│   └── anim.css      # Animations
+└── icons/            # PWA icons
 ```
-
----
-
-## Browser Support
-
-| Browser | Version | Support |
-|---------|---------|---------|
-| Chrome | 90+ | Full |
-| Firefox | 88+ | Full |
-| Safari | 14+ | Full |
-| Edge | 90+ | Full |
-
-### PWA Support
-- iOS Safari 16.4+ (Add to Home Screen)
-- Chrome for Android (Install App)
-- Desktop Chrome/Edge (Install App)
-
----
-
-## Tech Stack
-
-### Frontend
-- **HTML5** - Semantic markup
-- **CSS3** - Custom properties, animations
-- **Vanilla JavaScript** - ES6+ modules
-- **IndexedDB** - Local storage
-- **Service Worker** - PWA caching
-- **WebSocket** - Real-time sync
-
-### Backend
-- **Flask** - Python web framework
-- **Flask-CORS** - CORS handling
-- **Requests** - HTTP client
-- **DuckDuckGo Search** - Web search
-
-### External APIs
-- **Piston API** - Code execution
-- **OpenRouter** - LLM gateway
-- **Groq** - Fast inference
-- **Cerebras** - Ultra-fast inference
-
----
-
-## Free Models
-
-### OpenRouter
-- DeepSeek Chat (128K ctx)
-- Llama 3 70B
-- Qwen 2.5 72B
-- Gemini 2.0 Flash
-
-### Groq
-- Llama 3.3 70B
-- Mixtral 8x7B
-- DeepSeek R1
-
-### Cerebras
-- Llama 3.3 70B (fastest)
-
-### OpenCode Zen
-- Big Pickle
-- MiniMax M2.5 Free
-- GLM 4.7 Free
-- Kimi K2.5 Free
-
-### Google
-- Gemini 1.5 Flash
-- Gemini 2.0 Flash
 
 ---
 
 ## Troubleshooting
 
-### Service Worker Not Registering
-- Ensure you're serving over HTTPS (or localhost)
-- Check browser console for errors
-
-### API Errors
-- Verify your API key is correct
-- Check the provider status page
-- Ensure you have quota remaining
-
-### Cross-Device Sync Not Working
-- Both devices must be on the same network
-- Check firewall settings
-- Use local IP instead of hostname
-
-### PWA Not Installing
-- iOS: Use Safari "Share" > "Add to Home Screen"
-- Android: Use Chrome "Install App" menu
-- Desktop: Chrome menu > "Install Aether"
+| Problem | Solution |
+|---------|----------|
+| "Speech recognition not supported" | Use Chrome/Edge (desktop) or Safari (iOS) |
+| "Search failed" | Backend not running or /api/search unavailable |
+| "Connection timeout" for sync | Check both devices on same network |
+| PWA won't install | Ensure HTTPS or localhost, check manifest.json |
+| API key error | Verify key in Settings, check provider status |
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md).
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
----
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for security policy.
-
----
-
-## Credits
-
-See [AUTHORS.md](AUTHORS.md) for the development team.
-
----
-
-## Support
-
-- **Issues**: https://github.com/yourusername/aether-pwa/issues
-- **Discussions**: https://github.com/yourusername/aether-pwa/discussions
-- **Documentation**: https://aether-pwa.docs.example.com
-
----
-
-<div align="center">
-
-Built with passion for AI assistants
-
-[Website](https://aether.example.com) · [Documentation](https://aether-pwa.docs.example.com) · [Report Bug](https://github.com/yourusername/aether-pwa/issues)
-
-</div>
+MIT License - See [LICENSE.md](LICENSE.md)

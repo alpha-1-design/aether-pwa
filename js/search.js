@@ -1,7 +1,10 @@
-// js/search.js - Web Search Integration
-
 const SEARCH_COMMAND = "/search";
-const SEARCH_API_BASE = "/api/search";
+
+function getBackendUrl() {
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
+    return '';
+}
 
 export function isSearchCommand(message) {
     return message.toLowerCase().trim().startsWith(SEARCH_COMMAND + " ");
@@ -20,7 +23,7 @@ export async function processSearchCommand(message) {
     if (!query) return false;
 
     try {
-        const response = await fetch(`${SEARCH_API_BASE}?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`${getBackendUrl()}/api/search?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error("Search failed");
         
         const results = await response.json();

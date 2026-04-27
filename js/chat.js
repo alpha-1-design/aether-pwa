@@ -1,147 +1,228 @@
-// js/chat.js (Updated for Sync Integration)
+// js/chat.js - Chat UI with Backend Integration
 
-// Import necessary functions
-import { sendMessageToAI } from './api.js';
+import { sendMessageToAI, streamMessageToAI, getAvailableModels, FREE_MODELS } from './api.js';
 import { getApiKey } from './settings.js';
 import { getAllAgents, getAgent } from './store.js';
 import { processSearchCommand } from './search.js';
-import { sendSyncMessage } from './sync.js'; // Import sendSyncMessage
-import { socket } from './sync.js'; // Import socket object to get its ID
+import { sendSyncMessage } from './sync.js';
+import { socket } from './sync.js';
+import { TaskManager } from './tasks.js';
+import { SessionManager } from './sessions.js';
+import { MemoryManager } from './memory.js';
 
-// --- DOM Elements ---
 const messagesContainer = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
+const sendIcon = document.getElementById('sendIcon');
 const typingIndicator = document.getElementById('typingIndicator');
 const personaSelect = document.getElementById('personaSelect');
 
-// --- Message Display ---
-function displayMessage(role, content, synced = false) { // Added 'synced' parameter
+const taskManager = new TaskManager('taskPanel');
+window.taskManager = taskManager;
+
+const sessionManager = new SessionManager();
+window.sessionManager = sessionManager;
+
+const memoryManager = new MemoryManager();
+window.memoryManager = memoryManager;
+
+let availableModels = null;
+let abortController = null;
+
+let availableModels = null;
+
+function getBackendUrl() {
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
+    return '';
+}
+
+async function fetchModelsFromBackend(provider) {
+    try {
+        const baseUrl = getBackendUrl();
+        const resp = await fetch(`${baseUrl}/api/models?provider=${provider}`);
+        if (resp.ok) {
+            const data = await resp.json();
+            return data.free || [];
+        }
+    } catch (e) {
+        console.log('Backend unavailable, using hardcoded models');
+    }
+    return FREE_MODELS[provider] || [];
+}
+
+function displayMessage(role, content, synced = false) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message', `${role}-message`);
-    if (synced) {
-        messageElement.classList.add('synced-message');
+    if (synced) messageElement.classList.add('synced-message');
+
+    // Use marked for markdown rendering if available, otherwise fallback to basic sanitization
+    if (window.marked) {
+        // Configure marked to use highlight.js for code blocks
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (window.hljs) {
+                    return hljs.highlightAuto(code).value;
+                }
+                return code;
+            }
+        });
+        messageElement.innerHTML = marked.parse(content);
+    } else {
+        const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+        messageElement.innerHTML = safeContent;
     }
-    const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-    messageElement.innerHTML = safeContent;
+
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// --- Typing Indicator ---
 function showTypingIndicator(show) {
     typingIndicator.classList.toggle('hidden', !show);
 }
 
-// --- Sending Messages ---
+function updateSendButton() {
+    sendBtn.disabled = messageInput.value.trim() === '';
+}
+
 async function handleSendMessage() {
     const messageText = messageInput.value.trim();
     if (!messageText) return;
 
-    // --- Check for specific commands first ---
-    const isCommandProcessed = await processSearchCommand(messageText); 
+    const isCommandProcessed = await processSearchCommand(messageText);
     if (isCommandProcessed) {
         messageInput.value = '';
-        sendBtn.disabled = true;
-        showTypingIndicator(false);
+        updateSendButton();
         return;
     }
-    
-    // --- If not a command, proceed as normal chat message ---
+
     displayMessage('user', messageText);
-    sendSyncMessage('chat_message', { role: 'user', content: messageText, senderId: socket?.id }); // Send user message via sync
+    sendSyncMessage('chat_message', { role: 'user', content: messageText, senderId: socket?.id });
 
     messageInput.value = '';
-    sendBtn.disabled = true;
+    updateSendButton();
     showTypingIndicator(true);
+    sendBtn.disabled = true;
+    messageInput.disabled = true;
 
-    const selectedValue = personaSelect.value; 
-    let provider = 'openrouter'; 
-    let model = 'deepseek/deepseek-chat'; 
+    const selectedValue = personaSelect.value;
+    let provider = 'openrouter';
+    let model = 'deepseek/deepseek-chat';
     let systemMessage = null;
 
     if (selectedValue.startsWith('agent_')) {
-        const agentId = parseInt(selectedValue.split('_')[1]);
+        const agentId = selectedValue.split('_')[1];
         try {
             const agent = await getAgent(agentId);
             if (agent) {
                 let agentContext = agent.prompt;
-                if (agent.knowledge) {
-                    agentContext += `
-
-Knowledge Base:
-${agent.knowledge}`;
-                }
+                if (agent.knowledge) agentContext += `\n\nKnowledge:\n${agent.knowledge}`;
                 systemMessage = { role: 'system', content: agentContext };
             } else {
-                console.error(`Agent with ID ${agentId} not found.`);
-                displayMessage('ai', `Error: Agent not found. Please select a valid LLM.`);
+                displayMessage('ai', 'Agent not found. Please select a valid LLM.');
                 showTypingIndicator(false);
                 return;
             }
         } catch (error) {
-            console.error(`Error fetching agent ${agentId}:`, error);
-            displayMessage('ai', `Error loading agent details: ${error.message}`);
+            displayMessage('ai', `Error loading agent: ${error.message}`);
             showTypingIndicator(false);
+            sendBtn.disabled = false;
+            messageInput.disabled = false;
+            updateSendButton();
             return;
         }
     } else if (selectedValue && selectedValue !== 'default') {
         const parts = selectedValue.split('/');
-        if (parts.length > 1) { 
+        if (parts.length > 1) {
             provider = parts[0];
             model = parts[1];
-        } else { 
+        } else {
             model = selectedValue;
-            if (!provider) provider = 'openrouter'; 
         }
-        const apiKey = getApiKey(provider);
-        if (!apiKey) {
-            console.error(`API key not found for provider: ${provider}. Please set it in settings.`);
-            displayMessage('ai', `Error: API key not found for ${provider}. Please set it in settings.`);
-            showTypingIndicator(false);
-            return; 
-        }
-    } else { // Default LLM
-        provider = 'openrouter'; 
-        model = 'deepseek/deepseek-chat'; 
+    }
+
+    let apiKey = getApiKey(provider);
+    if (!apiKey) {
+        apiKey = localStorage.getItem(`aether_api_key_${provider}`);
+    }
+    if (!apiKey) {
+        displayMessage('ai', `API key for ${provider} not found. Add it in Settings → API Keys.`);
+        showTypingIndicator(false);
+        sendBtn.disabled = false;
+        messageInput.disabled = false;
+        updateSendButton();
+        return;
     }
 
     let messagesToSend = [];
-    if (systemMessage) {
-        messagesToSend.push(systemMessage);
+    if (systemMessage) messagesToSend.push(systemMessage);
+
+    // Inject Long-Term Memory into the conversation
+    const memoryContext = memoryManager.query(messageText);
+    if (memoryContext) {
+        messagesToSend.push({
+            role: 'system',
+            content: `User's Long-Term Memory:\n${memoryContext}\n\nUse this context to personalize your response.`
+        });
     }
+
     messagesToSend.push({ role: 'user', content: messageText });
 
-    console.log(`Sending message: Provider=${provider}, Model=${model}, Messages=${messagesToSend.length}`);
+    let fullResponse = '';
+    try {
+        const streamResult = await sendMessageToAI(messageText, provider, model, messagesToSend, apiKey);
 
-    const streamResult = await sendMessageToAI(messageText, provider, model, messagesToSend); 
-
-    if (streamResult && streamResult.stream) {
-        let fullResponse = '';
-        try {
+        if (streamResult && streamResult.stream) {
             for await (const chunk of streamResult.stream()) {
                 if (chunk) {
+                    // MEMORY TRIGGER: Check if the AI is explicitly remembering something
+                    const rememberMatch = chunk.match(/\[REMEMBER: (.+?)\]/);
+                    if (rememberMatch) {
+                        memoryManager.remember(rememberMatch[1]);
+                        chunk = chunk.replace(/\[REMEMBER: .+?\]/, '');
+                    }
+
+                    const taskAddMatch = chunk.match(/\[TASK: (.+?)\]/);
+                    if (taskAddMatch) {
+                        taskManager.addTask(taskAddMatch[1]);
+                        chunk = chunk.replace(/\[TASK: .+?\]/, '');
+                    }
+                    const taskDoneMatch = chunk.match(/\[TASK_DONE: (\d+)\]/);
+                    if (taskDoneMatch) {
+                        taskManager.updateTaskStatus(taskDoneMatch[1], 'completed');
+                        chunk = chunk.replace(/\[TASK_DONE: \d+\]/, '');
+                    }
+                    const taskProgressMatch = chunk.match(/\[TASK_START: (\d+)\]/);
+                    if (taskProgressMatch) {
+                        taskManager.updateTaskStatus(taskProgressMatch[1], 'in_progress');
+                        chunk = chunk.replace(/\[TASK_START: \d+\]/, '');
+                    }
                     fullResponse += chunk;
                 }
             }
-            displayMessage('ai', fullResponse);
-            sendSyncMessage('chat_message', { role: 'ai', content: fullResponse, senderId: socket?.id }); // Sync AI response
-        } catch (error) {
-            console.error("Streaming error:", error);
-            displayMessage('ai', `Error: ${error.message || 'Failed to get response.'}`);
+        } else if (streamResult && streamResult.error) {
+            displayMessage('ai', `Error: ${streamResult.error}`);
+            showTypingIndicator(false);
+            return;
+        } else if (typeof streamResult === 'string') {
+            fullResponse = streamResult;
         }
-    } else if (streamResult && streamResult.error) {
-        displayMessage('ai', `Error: ${streamResult.error}`);
-    } else {
-        displayMessage('ai', 'An unknown error occurred.');
+    } catch (error) {
+        console.error('Chat error:', error);
+        displayMessage('ai', `Error: ${error.message}`);
+        showTypingIndicator(false);
+        sendBtn.disabled = false;
+        messageInput.disabled = false;
+        updateSendButton();
+        return;
     }
 
+    displayMessage('ai', fullResponse);
+    sendSyncMessage('chat_message', { role: 'ai', content: fullResponse, senderId: socket?.id });
     showTypingIndicator(false);
-    if (messageInput.value.trim()) {
-        sendBtn.disabled = false;
-    } else {
-        sendBtn.disabled = true;
-    }
+    updateSendButton();
+    messageInput.disabled = false;
+    messageInput.style.height = 'auto'; // Reset height after sending
 }
 
 // --- UI Initialization ---
@@ -270,4 +351,5 @@ if (personaSelect) {
 }
 
 // Export displayMessage so other modules can use it
-export { displayMessage }; 
+export { displayMessage };
+window.displayMessage = displayMessage;

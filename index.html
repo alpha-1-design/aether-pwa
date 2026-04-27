@@ -13,7 +13,11 @@
     <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="/styles/theme.css">
     <link rel="stylesheet" href="/styles/anim.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%236366f1'/%3E%3Ccircle cx='50' cy='50' r='25' fill='none' stroke='%23a1a1aa' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='15' fill='none' stroke='%236366f1' stroke-width='3' opacity='0.6'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
 <body>
     <div id="app" class="app-container">
@@ -63,6 +67,11 @@
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
                     </div>
+                    <button class="icon-btn" id="historyBtn" title="Chat History">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </button>
                 </div>
                 <div id="messages" class="messages-container">
                     <div class="empty-state">
@@ -94,16 +103,26 @@
                 </div>
                 <div class="typing-indicator hidden" id="typingIndicator">
                     <div class="typing-content">
-                        <svg class="typing-atom" viewBox="0 0 100 100" width="24" height="24">
-                            <circle cx="50" cy="50" r="16" fill="#6366f1"/>
-                            <ellipse class="atom-ring atom-ring-1" cx="50" cy="50" rx="38" ry="16" fill="none" stroke="#a1a1aa" stroke-width="3"/>
-                            <ellipse class="atom-ring atom-ring-2" cx="50" cy="50" rx="38" ry="16" fill="none" stroke="#6366f1" stroke-width="3" opacity="0.7"/>
-                        </svg>
+                        <div class="thinking-core loader">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <defs>
+                                    <mask id="clipping-mini">
+                                        <polygon points="0,0 100,0 100,100 0,100" fill="black"></polygon>
+                                        <polygon points="25,25 75,25 50,75" fill="white"></polygon>
+                                        <polygon points="50,25 75,75 25,75" fill="white"></polygon>
+                                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                                    </mask>
+                                </defs>
+                            </svg>
+                            <div class="box"></div>
+                        </div>
                         <div class="typing-dots">
                             <span></span><span></span><span></span>
                         </div>
                     </div>
                 </div>
+                <div id="taskPanel" class="task-panel hidden"></div>
                 <div class="input-container">
                     <div class="input-actions">
                         <button class="icon-btn" id="attachBtn" title="Attach file">
@@ -260,6 +279,13 @@
                                         <span class="theme-preview glass"></span>
                                         <span>Glass</span>
                                     </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Soul Color (Accent)</label>
+                                <div class="color-picker-container">
+                                    <input type="color" id="soulColorPicker" value="#6366f1">
+                                    <span id="soulColorHex">#6366f1</span>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -442,6 +468,36 @@
         </div>
     </div>
 
+    <div class="modal-overlay hidden" id="historyModal">
+        <div class="modal" id="historyModalContent">
+            <div class="modal-header">
+                <h3>Chat History</h3>
+                <button class="icon-btn modal-close">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="history-controls">
+                    <button class="primary-btn" id="newChatBtn">New Chat</button>
+                </div>
+                <div id="sessionList" class="sessions-list">
+                    <!-- Sessions will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/app.js" type="module"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

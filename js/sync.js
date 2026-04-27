@@ -168,6 +168,8 @@ export function sendSyncMessage(type, data) {
 function getServerUrl() {
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     const host = window.location.hostname;
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
     const port = 5000;
     return `${protocol}//${host}:${port}`;
 }
