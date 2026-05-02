@@ -1,13 +1,20 @@
 const CACHE_NAME = 'aether-pwa-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+  'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/icons/icon-192x192.png',
-        '/icons/icon-512x512.png',
-      ]);
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
   self.skipWaiting();

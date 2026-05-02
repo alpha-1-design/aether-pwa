@@ -106,8 +106,7 @@ def extract_tokens(provider, data):
                 "completion_tokens": data.get("usage", {}).get("completion_tokens", 0),
                 "total_tokens": data.get("usage", {}).get("total_tokens", 0)}
     if usage:
-        usage["total"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0) or 
-                   usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
+        usage["total"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
     return usage
 
 def build_payload(provider, model, messages, stream=False):
@@ -276,7 +275,6 @@ def upload_file():
 # Initialize SocketIO with the Flask app
 # async_mode='threading' is suitable for development with Flask's built-in server.
 # For production, consider a production-ready ASGI server like uvicorn/gunicorn with workers.
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading') 
 
 # Define SocketIO event handlers
 @socketio.on('connect')
@@ -337,4 +335,4 @@ def on_send_sync_message(data):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting server on port {port} with WebSocket support...")
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
