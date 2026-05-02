@@ -2,7 +2,7 @@
 
 import { sendMessageToAI, streamMessageToAI, getAvailableModels, FREE_MODELS } from './api.js';
 import { getApiKey } from './settings.js';
-import { getAllAgents, getAgent } from './store.js';
+import { getAllAgents, getAgent as getAgentById } from './store.js';
 import { processSearchCommand } from './search.js';
 import { sendSyncMessage } from './sync.js';
 import { socket } from './sync.js';
@@ -112,7 +112,7 @@ async function handleSendMessage() {
     if (selectedValue.startsWith('agent_')) {
         const agentId = selectedValue.split('_')[1];
         try {
-            const agent = await getAgent(agentId);
+            const agent = await getAgentById(agentId);
             if (agent) {
                 let agentContext = agent.prompt;
                 if (agent.knowledge) agentContext += `\n\nKnowledge:\n${agent.knowledge}`;
@@ -172,31 +172,32 @@ async function handleSendMessage() {
         const streamResult = await sendMessageToAI(messageText, provider, model, messagesToSend, apiKey);
 
         if (streamResult && streamResult.stream) {
-            for await (const chunk of streamResult.stream()) {
-                if (chunk) {
-                    // MEMORY TRIGGER: Check if the AI is explicitly remembering something
-                    const rememberMatch = chunk.match(/\[REMEMBER: (.+?)\]/);
+            let chunkText = '';
+            for await (const chunkItem of streamResult.stream()) {
+                if (chunkItem) {
+                    chunkText = chunkItem;
+                    const rememberMatch = chunkText.match(/\[REMEMBER: (.+?)\]/);
                     if (rememberMatch) {
                         memoryManager.remember(rememberMatch[1]);
-                        chunk = chunk.replace(/\[REMEMBER: .+?\]/, '');
+                        chunkText = chunkText.replace(/\[REMEMBER: .+?\]/, '');
                     }
 
-                    const taskAddMatch = chunk.match(/\[TASK: (.+?)\]/);
+                    const taskAddMatch = chunkText.match(/\[TASK: (.+?)\]/);
                     if (taskAddMatch) {
                         taskManager.addTask(taskAddMatch[1]);
-                        chunk = chunk.replace(/\[TASK: .+?\]/, '');
+                        chunkText = chunkText.replace(/\[TASK: .+?\]/, '');
                     }
-                    const taskDoneMatch = chunk.match(/\[TASK_DONE: (\d+)\]/);
+                    const taskDoneMatch = chunkText.match(/\[TASK_DONE: (\d+)\]/);
                     if (taskDoneMatch) {
                         taskManager.updateTaskStatus(taskDoneMatch[1], 'completed');
-                        chunk = chunk.replace(/\[TASK_DONE: \d+\]/, '');
+                        chunkText = chunkText.replace(/\[TASK_DONE: \d+\]/, '');
                     }
-                    const taskProgressMatch = chunk.match(/\[TASK_START: (\d+)\]/);
+                    const taskProgressMatch = chunkText.match(/\[TASK_START: (\d+)\]/);
                     if (taskProgressMatch) {
                         taskManager.updateTaskStatus(taskProgressMatch[1], 'in_progress');
-                        chunk = chunk.replace(/\[TASK_START: \d+\]/, '');
+                        chunkText = chunkText.replace(/\[TASK_START: \d+\]/, '');
                     }
-                    fullResponse += chunk;
+                    fullResponse += chunkText;
                 }
             }
         } else if (streamResult && streamResult.error) {

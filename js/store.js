@@ -7,7 +7,7 @@ const CHATS_STORE = "chats";
 
 let db = null;
 
-export async function initDB() {
+async function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -38,7 +38,7 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
-export async function createAgent(name, prompt, knowledge = "", avatar = "") {
+async function createAgent(name, prompt, knowledge = "", avatar = "") {
     await initDB();
     
     const agent = {
@@ -61,7 +61,7 @@ export async function createAgent(name, prompt, knowledge = "", avatar = "") {
     });
 }
 
-export async function updateAgent(id, updates) {
+async function updateAgent(id, updates) {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -86,7 +86,7 @@ export async function updateAgent(id, updates) {
     });
 }
 
-export async function deleteAgent(id) {
+async function deleteAgent(id) {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -99,7 +99,7 @@ export async function deleteAgent(id) {
     });
 }
 
-export async function getAgent(id) {
+async function getAgent(id) {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ export async function getAgent(id) {
     });
 }
 
-export async function getAllAgents() {
+async function getAllAgents() {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -125,29 +125,20 @@ export async function getAllAgents() {
     });
 }
 
-export async function saveChat(chat) {
+async function saveChat(chat) {
     await initDB();
     
-    const chatData = {
-        id: chat.id || generateId(),
-        title: chat.title || "New Chat",
-        messages: chat.messages || [],
-        agentId: chat.agentId || null,
-        createdAt: chat.createdAt || Date.now(),
-        updatedAt: Date.now()
-    };
-
     return new Promise((resolve, reject) => {
         const tx = db.transaction(CHATS_STORE, "readwrite");
         const store = tx.objectStore(CHATS_STORE);
-        const request = store.put(chatData);
+        const request = store.put(chat);
         
-        request.onsuccess = () => resolve(chatData);
+        request.onsuccess = () => resolve(chat);
         request.onerror = () => reject(request.error);
     });
 }
 
-export async function getChat(id) {
+async function getChat(id) {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -160,7 +151,7 @@ export async function getChat(id) {
     });
 }
 
-export async function getAllChats() {
+async function getAllChats() {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -168,16 +159,12 @@ export async function getAllChats() {
         const store = tx.objectStore(CHATS_STORE);
         const request = store.getAll();
         
-        request.onsuccess = () => {
-            const chats = request.result || [];
-            chats.sort((a, b) => b.updatedAt - a.updatedAt);
-            resolve(chats);
-        };
+        request.onsuccess = () => resolve(request.result || []);
         request.onerror = () => reject(request.error);
     });
 }
 
-export async function deleteChat(id) {
+async function deleteChat(id) {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -190,7 +177,7 @@ export async function deleteChat(id) {
     });
 }
 
-export async function clearAllChats() {
+async function clearAllChats() {
     await initDB();
     
     return new Promise((resolve, reject) => {
@@ -203,14 +190,15 @@ export async function clearAllChats() {
     });
 }
 
-export async function exportData() {
+async function exportData() {
     const agents = await getAllAgents();
     const chats = await getAllChats();
-    
     return { agents, chats, exportedAt: Date.now() };
 }
 
-export async function importData(data) {
+async function importData(data) {
+    await initDB();
+    
     if (data.agents) {
         for (const agent of data.agents) {
             await createAgent(agent.name, agent.prompt, agent.knowledge, agent.avatar);
@@ -223,4 +211,4 @@ export async function importData(data) {
     }
 }
 
-export { generateId };
+export { generateId, createAgent as addAgent, getAgent, updateAgent, deleteAgent, getAllAgents, saveChat, getChat, getAllChats, deleteChat, clearAllChats, exportData, importData };

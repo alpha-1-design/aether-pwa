@@ -106,7 +106,8 @@ def extract_tokens(provider, data):
                 "completion_tokens": data.get("usage", {}).get("completion_tokens", 0),
                 "total_tokens": data.get("usage", {}).get("total_tokens", 0)}
     if usage:
-        usage["total"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+        usage["total"] = (usage.get("input_tokens", 0) + usage.get("output_tokens", 0) or 
+                     usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0))
     return usage
 
 def build_payload(provider, model, messages, stream=False):
@@ -277,29 +278,34 @@ def upload_file():
 # For production, consider a production-ready ASGI server like uvicorn/gunicorn with workers.
 
 # Define SocketIO event handlers
+def get_sid():
+    """Get the session ID from the SocketIO connection."""
+    return request.sid if hasattr(request, 'sid') else None
+
 @socketio.on('connect')
 def handle_connect():
     """Handles client connection."""
-    print(f"Client connected: {request.sid}")
+    sid = get_sid()
+    print(f"Client connected: {sid}")
     emit('message', {'data': 'Connected to server'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     """Handles client disconnection."""
-    print(f"Client disconnected: {request.sid}")
+    sid = get_sid()
+    print(f"Client disconnected: {sid}")
 
 @socketio.on('join_session')
 def on_join_session(data):
     """Handles a client joining a specific session room."""
+    sid = get_sid()
     session_id = data.get('session_id')
-    is_host = data.get('is_host', False) # New: indicate if client is host
+    is_host = data.get('is_host', False)
     if session_id:
         join_room(session_id)
-        print(f"Client {request.sid} joined session: {session_id} (Host: {is_host})")
-        # Emit a message to the room that a new client joined
-        emit('message', {'data': f'Client {request.sid} joined session {session_id}'}, room=session_id)
-        # Update connected device list for all in room
-        emit('connected_devices_update', {'devices': [sid for sid in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
+        print(f"Client {sid} joined session: {session_id} (Host: {is_host})")
+        emit('message', {'data': f'Client {sid} joined session {session_id}'}, room=session_id)
+        emit('connected_devices_update', {'devices': [s for s in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
     else:
         print("Join session failed: Missing session_id")
         emit('error', {'message': 'Missing session_id'})
@@ -307,13 +313,13 @@ def on_join_session(data):
 @socketio.on('leave_session')
 def on_leave_session(data):
     """Handles a client leaving a session room."""
+    sid = get_sid()
     session_id = data.get('session_id')
     if session_id:
         leave_room(session_id)
-        print(f"Client {request.sid} left session: {session_id}")
-        emit('message', {'data': f'Client {request.sid} left session {session_id}'}, room=session_id)
-        # Update connected device list for all in room
-        emit('connected_devices_update', {'devices': [sid for sid in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
+        print(f"Client {sid} left session: {session_id}")
+        emit('message', {'data': f'Client {sid} left session {session_id}'}, room=session_id)
+        emit('connected_devices_update', {'devices': [s for s in socketio.sockets.get(session_id, {}).keys()]}, room=session_id)
     else:
         print("Leave session failed: Missing session_id")
         emit('error', {'message': 'Missing session_id'})
@@ -321,12 +327,12 @@ def on_leave_session(data):
 @socketio.on('send_sync_message')
 def on_send_sync_message(data):
     """Broadcasts a message to all clients in a session."""
+    sid = get_sid()
     session_id = data.get('session_id')
     message_data = data.get('message')
     if session_id and message_data:
         print(f"Broadcasting message to session {session_id}: {message_data}")
-        # Only broadcast to others in the room, not the sender
-        emit('receive_sync_message', {'message': message_data}, room=session_id, skip_sid=request.sid) 
+        emit('receive_sync_message', {'message': message_data}, room=session_id, skip_sid=sid)
     else:
         print("Send sync message failed: Missing session_id or message data")
         emit('error', {'message': 'Missing session_id or message data'})
