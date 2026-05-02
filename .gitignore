@@ -3,3 +3,4 @@ dist/
 uploads/
 .env
 .vercel
+api/__pycache__/
