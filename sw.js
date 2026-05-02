@@ -1,19 +1,19 @@
-const CACHE_NAME = 'aether-pwa-v1';
+const CACHE_NAME = 'aether-pwa-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/styles/design-system.css',
+  '/styles/main.css',
+  '/js/app.js',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-  'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css'
+  '/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('Caching app shell');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -21,16 +21,25 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) return response;
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      
       return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200) return response;
-        const responseClone = response.clone();
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+        const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
+          cache.put(event.request, responseToCache);
         });
         return response;
+      }).catch(() => {
+        if (event.request.headers.get('accept')?.includes('text/html')) {
+          return caches.match('/index.html');
+        }
       });
     })
   );
@@ -40,11 +49,13 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
